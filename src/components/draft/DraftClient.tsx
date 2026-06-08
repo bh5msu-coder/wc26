@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Avatar, Card, Chip, Flag, SectionLabel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
+import { draftNation } from "@/server/actions";
 
 export type DraftManager = { id: string; name: string; color: string; isYou: boolean };
 export type DraftPick = { pickNumber: number; round: number; ownerId: string; code: string; flag: string; name: string };
@@ -252,8 +254,89 @@ function MockDraft({ managers, order, nations, rounds, onClose }: {
   );
 }
 
-export function DraftClient({ managers, order, picks, nations, rounds }: {
+// ── Live draft control ──
+function DraftControl({
+  managers, nations, poolId, youId, onClockId, picksMade, totalPicks,
+}: {
+  managers: DraftManager[]; nations: DraftNation[]; poolId: string;
+  youId: string | null; onClockId: string | null; picksMade: number; totalPicks: number;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = React.useTransition();
+  const [error, setError] = React.useState<string | null>(null);
+
+  const complete = onClockId == null;
+  const yourTurn = !!youId && onClockId === youId;
+  const onClock = managers.find((m) => m.id === onClockId);
+  const available = React.useMemo(
+    () => nations.filter((n) => !n.owned).sort((a, b) => b.strength - a.strength),
+    [nations],
+  );
+
+  // While it's someone else's turn, poll so your turn appears without a reload.
+  React.useEffect(() => {
+    if (complete || yourTurn) return;
+    const t = setInterval(() => router.refresh(), 6000);
+    return () => clearInterval(t);
+  }, [complete, yourTurn, router]);
+
+  const draft = (code: string) => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await draftNation(poolId, code);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not draft that nation.");
+      }
+    });
+  };
+
+  const bannerBg = yourTurn ? "var(--accent)" : "var(--surface-2)";
+  const bannerInk = yourTurn ? "var(--accent-ink)" : "var(--text)";
+  const label = complete
+    ? `Draft complete — all ${totalPicks} picks made`
+    : yourTurn
+      ? `You're on the clock · Pick ${picksMade + 1} of ${totalPicks}`
+      : `${onClock?.name ?? "—"} is on the clock · Pick ${picksMade + 1} of ${totalPicks}`;
+
+  return (
+    <Card style={{ padding: 16, maxWidth: 760 }}>
+      <div className="flex items-center gap-3" style={{ background: bannerBg, border: `1px solid ${yourTurn ? "transparent" : "var(--line)"}`, borderRadius: 12, padding: "11px 14px" }}>
+        {onClock && !complete && <Avatar name={onClock.name} color={onClock.color} size={30} ring={yourTurn} />}
+        <div className="flex-1 text-[14px] font-extrabold" style={{ color: bannerInk }}>{label}</div>
+        {pending && <div className="h-[18px] w-[18px] animate-spin-slow rounded-full" style={{ border: "2px solid rgba(10,14,21,0.25)", borderTopColor: yourTurn ? "var(--accent-ink)" : "var(--dim)" }} />}
+      </div>
+
+      {error && <div className="mt-3 rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold" style={{ background: "rgba(255,92,114,0.14)", color: "var(--neg)" }}>{error}</div>}
+
+      {yourTurn && (
+        <div className="mt-4">
+          <SectionLabel>Pick a nation · best available first</SectionLabel>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {available.map((n) => (
+              <button
+                key={n.code}
+                disabled={pending}
+                onClick={() => draft(n.code)}
+                className="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 text-left disabled:opacity-50"
+                style={{ background: "var(--surface)", border: "1px solid var(--line)" }}
+              >
+                <span className="flag" style={{ fontSize: 20 }}>{n.flag}</span>
+                <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">{n.name}</span>
+                <Chip tone="muted" style={{ fontSize: 10 }}>{Math.round(n.strength)}</Chip>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+export function DraftClient({ managers, order, picks, nations, rounds, poolId, youId, onClockId }: {
   managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[]; rounds: number;
+  poolId: string; youId: string | null; onClockId: string | null;
 }) {
   const [view, setView] = React.useState<"board" | "big">("board");
   const [mock, setMock] = React.useState(false);
@@ -265,10 +348,20 @@ export function DraftClient({ managers, order, picks, nations, rounds }: {
           <div className="text-[11px] font-extrabold uppercase tracking-[0.22em]" style={{ color: "var(--faint)" }}>Custom draft · {rounds} rounds</div>
           <h1 className="display" style={{ fontSize: 30 }}>The Draft</h1>
         </div>
-        <button onClick={() => setMock(true)} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12.5px] font-extrabold" style={{ background: "var(--accent)", color: "var(--accent-ink)" }}>
-          <Icon name="bolt" size={14} color="var(--accent-ink)" /> Mock draft
+        <button onClick={() => setMock(true)} className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[12.5px] font-extrabold" style={{ background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--line)" }}>
+          <Icon name="bolt" size={14} color="var(--dim)" /> Mock draft
         </button>
       </div>
+
+      <DraftControl
+        managers={managers}
+        nations={nations}
+        poolId={poolId}
+        youId={youId}
+        onClockId={onClockId}
+        picksMade={picks.length}
+        totalPicks={order.length}
+      />
 
       <div className="flex max-w-[360px] gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
         {([["board", "Draft board", "grid"], ["big", "Big board", "list"]] as const).map(([k, label, icon]) => (

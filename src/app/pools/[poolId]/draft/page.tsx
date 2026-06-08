@@ -38,5 +38,20 @@ export default async function DraftPage({ params }: { params: { poolId: string }
     owned: n.ownerId != null, strength: n.strength, points: n.points, ownerId: n.ownerId,
   }));
 
-  return <DraftClient managers={managers} order={order} picks={picks} nations={nations} rounds={pool.rounds} />;
+  const youId = pool.managers.find((m) => m.isYou)?.membershipId ?? null;
+  const picksMade = picks.length;
+  const onClockId = picksMade < order.length ? order[picksMade] : null;
+
+  return (
+    <DraftClient
+      managers={managers}
+      order={order}
+      picks={picks}
+      nations={nations}
+      rounds={pool.rounds}
+      poolId={params.poolId}
+      youId={youId}
+      onClockId={onClockId}
+    />
+  );
 }
