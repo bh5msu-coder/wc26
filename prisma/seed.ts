@@ -13,12 +13,10 @@ async function main() {
     });
   }
 
+  // Replace fixtures wholesale so any stale scores/results are cleared.
+  await prisma.fixture.deleteMany({});
   for (const f of FIXTURES) {
-    await prisma.fixture.upsert({
-      where: { id: f.id },
-      update: { ...f, events: f.events ?? undefined },
-      create: { ...f, events: f.events ?? undefined },
-    });
+    await prisma.fixture.create({ data: { ...f, events: f.events ?? undefined } });
   }
 
   console.log("→ Seeding users…");

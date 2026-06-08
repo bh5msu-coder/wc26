@@ -2,7 +2,6 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { points } from "@/lib/scoring";
 import type { Manager, PoolView, RosterNation, StandingRow, Weights } from "@/lib/types";
-import { POOL } from "../../prisma/seed-data";
 
 function weightsOf(pool: {
   winPts: number; drawPts: number; goalPts: number; csPts: number; koPts: number; champPts: number;
@@ -91,7 +90,7 @@ export async function getPoolView(poolId: string, userId: string): Promise<PoolV
         manager: mgr,
         total: t.total,
         alive: t.alive,
-        today: POOL.deltas[mgr.handle] ?? 0,
+        today: 0,
         rank: 0,
       };
     })

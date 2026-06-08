@@ -91,8 +91,9 @@ const FREE_AGENTS: [string, string, string, string, number][] = [
 export const NATIONS: SeedNation[] = [
   ...DRAFTED.map((d): SeedNation => ({
     code: d[1], name: d[2], flag: d[3], group: d[4],
-    W: d[5], D: d[6], L: d[7], GF: d[8], CS: d[9], KOW: d[10],
-    round: d[11], alive: d[12], champion: false, strength: d[13],
+    // No results yet — records start at zero until real matches are played.
+    W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
+    round: "Group", alive: false, champion: false, strength: d[13],
   })),
   ...FREE_AGENTS.map(([code, name, flag, group, strength]): SeedNation => ({
     code, name, flag, group, W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
@@ -124,22 +125,16 @@ export type SeedFixture = {
   events?: { t: string; code: string; text: string; kind: string }[];
 };
 
+// Schedule only — no scores or results until real matches are played.
 export const FIXTURES: SeedFixture[] = [
-  {
-    id: "qf1", stage: "Quarter-final", status: "live", minute: "62'",
-    homeCode: "ARG", awayCode: "NED", hs: 1, as: 1, venue: "MetLife Stadium", sort: 0,
-    events: [
-      { t: "23'", code: "ARG", text: "J. Álvarez", kind: "goal" },
-      { t: "51'", code: "NED", text: "C. Gakpo", kind: "goal" },
-    ],
-  },
-  { id: "qf2", stage: "Quarter-final", status: "upcoming", homeCode: "ESP", awayCode: "BRA", whenLabel: "Today · 8:00 PM", venue: "AT&T Stadium", sort: 1 },
-  { id: "qf3", stage: "Quarter-final", status: "upcoming", homeCode: "FRA", awayCode: "ENG", whenLabel: "Tomorrow · 4:00 PM", venue: "SoFi Stadium", sort: 2 },
-  { id: "qf4", stage: "Quarter-final", status: "upcoming", homeCode: "POR", awayCode: "MAR", whenLabel: "Tomorrow · 8:00 PM", venue: "Estadio Azteca", sort: 3 },
-  { id: "r16a", stage: "Round of 16", status: "final", homeCode: "ARG", awayCode: "GER", hs: 2, as: 1, whenLabel: "Sun", sort: 4 },
-  { id: "r16b", stage: "Round of 16", status: "final", homeCode: "ESP", awayCode: "URU", hs: 3, as: 0, whenLabel: "Sun", sort: 5 },
-  { id: "r16c", stage: "Round of 16", status: "final", homeCode: "MAR", awayCode: "BEL", hs: 1, as: 0, whenLabel: "Sat", sort: 6 },
-  { id: "r16d", stage: "Round of 16", status: "final", homeCode: "POR", awayCode: "JPN", hs: 2, as: 0, whenLabel: "Sat", sort: 7 },
+  { id: "qf1", stage: "Quarter-final", status: "upcoming", homeCode: "ARG", awayCode: "NED", whenLabel: "TBD", venue: "MetLife Stadium", sort: 0 },
+  { id: "qf2", stage: "Quarter-final", status: "upcoming", homeCode: "ESP", awayCode: "BRA", whenLabel: "TBD", venue: "AT&T Stadium", sort: 1 },
+  { id: "qf3", stage: "Quarter-final", status: "upcoming", homeCode: "FRA", awayCode: "ENG", whenLabel: "TBD", venue: "SoFi Stadium", sort: 2 },
+  { id: "qf4", stage: "Quarter-final", status: "upcoming", homeCode: "POR", awayCode: "MAR", whenLabel: "TBD", venue: "Estadio Azteca", sort: 3 },
+  { id: "r16a", stage: "Round of 16", status: "upcoming", homeCode: "ARG", awayCode: "GER", whenLabel: "TBD", sort: 4 },
+  { id: "r16b", stage: "Round of 16", status: "upcoming", homeCode: "ESP", awayCode: "URU", whenLabel: "TBD", sort: 5 },
+  { id: "r16c", stage: "Round of 16", status: "upcoming", homeCode: "MAR", awayCode: "BEL", whenLabel: "TBD", sort: 6 },
+  { id: "r16d", stage: "Round of 16", status: "upcoming", homeCode: "POR", awayCode: "JPN", whenLabel: "TBD", sort: 7 },
 ];
 
 // The live bracket the Monte Carlo predictor projects forward.
@@ -163,15 +158,4 @@ export const POOL = {
   name: "The Lads",
   season: "World Cup 26",
   stageLabel: "Quarter-finals",
-  // "points gained in the last 24h" deltas, used for the leaderboard movement chips
-  deltas: { andy: 16, zd: 13, bard: 11, tom: 9, brain: 8, jarn: 8, goalie: 7, stove: 3 } as Record<string, number>,
 };
-
-export const FEED = [
-  { t: "now", code: "ARG", icon: "goal", text: "Álvarez fires Argentina ahead", pts: "+2", who: "andy", detail: "Goal + clean-sheet watch" },
-  { t: "11m", code: "NED", icon: "goal", text: "Gakpo levels for the Dutch", pts: "+1", who: "zd", detail: "Goal scored" },
-  { t: "2h", code: "POR", icon: "ko", text: "Portugal book quarter-final spot", pts: "+6", who: "tom", detail: "KO win +3, +1 KO bonus, +2 goals" },
-  { t: "Sun", code: "ARG", icon: "ko", text: "Argentina edge Germany in R16", pts: "+6", who: "andy", detail: "KO win +3, +1 KO bonus, +2 goals" },
-  { t: "Sun", code: "ESP", icon: "cs", text: "Spain shut out Uruguay 3–0", pts: "+7", who: "bard", detail: "KO win +4, +3 goals, +1 CS" },
-  { t: "Sat", code: "MAR", icon: "cs", text: "Morocco grind a 1–0 clean sheet", pts: "+5", who: "zd", detail: "KO win +4, +1 CS" },
-];
