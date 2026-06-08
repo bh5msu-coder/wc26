@@ -137,6 +137,8 @@ model Membership {
   displayName String // shown on the leaderboard, e.g. "Tom"
   color       String   @default("#C6FF3A")
   role        Role     @default(MEMBER)
+  queue       String[] @default([]) // personal draft queue: nation codes, priority order
+  autoDraft   Boolean  @default(false) // auto-pick top available queued team on the clock
   pool        Pool     @relation(fields: [poolId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   picks       Pick[]

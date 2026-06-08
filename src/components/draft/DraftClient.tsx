@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Card, Chip, Flag, SectionLabel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { draftNation } from "@/server/actions";
+import { draftNation, setQueue, setAutoDraft, autoAdvanceDraft } from "@/server/actions";
 
 export type DraftManager = { id: string; name: string; color: string; isYou: boolean };
 export type DraftPick = { pickNumber: number; round: number; ownerId: string; code: string; flag: string; name: string };
@@ -277,12 +277,21 @@ function DraftControl({
   const nextIdx = youId ? order.findIndex((id, i) => i >= picksMade && id === youId) : -1;
   const picksAway = nextIdx >= 0 ? nextIdx - picksMade : -1;
 
+  // Advance through any on-the-clock auto-draft members (covers absent managers).
+  React.useEffect(() => {
+    if (complete) return;
+    autoAdvanceDraft(poolId).catch(() => {});
+  }, [complete, picksMade, poolId]);
+
   // While it's someone else's turn, poll so your turn appears without a reload.
   React.useEffect(() => {
     if (complete || yourTurn) return;
-    const t = setInterval(() => router.refresh(), 6000);
+    const t = setInterval(() => {
+      autoAdvanceDraft(poolId).catch(() => {});
+      router.refresh();
+    }, 6000);
     return () => clearInterval(t);
-  }, [complete, yourTurn, router]);
+  }, [complete, yourTurn, poolId, router]);
 
   const draft = (code: string) => {
     setError(null);
@@ -413,11 +422,97 @@ function OrderList({ managers, order, picks, youId }: {
   );
 }
 
-export function DraftClient({ managers, order, picks, nations, rounds, poolId, youId, onClockId }: {
-  managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[]; rounds: number;
-  poolId: string; youId: string | null; onClockId: string | null;
+// ── Personal draft queue ──
+function QueuePanel({ poolId, queue, autoDraft, nations, youId }: {
+  poolId: string; queue: string[]; autoDraft: boolean; nations: DraftNation[]; youId: string | null;
 }) {
-  const [view, setView] = React.useState<"board" | "order" | "big">("board");
+  const router = useRouter();
+  const [pending, startTransition] = React.useTransition();
+  const nByCode = new Map(nations.map((n) => [n.code, n]));
+  const inQueue = new Set(queue);
+  const available = nations.filter((n) => !n.owned && !inQueue.has(n.code)).sort((a, b) => b.strength - a.strength);
+
+  const save = (next: string[]) => startTransition(async () => { await setQueue(poolId, next); router.refresh(); });
+  const toggleAuto = () => startTransition(async () => { await setAutoDraft(poolId, !autoDraft); router.refresh(); });
+  const remove = (code: string) => save(queue.filter((c) => c !== code));
+  const add = (code: string) => save([...queue, code]);
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= queue.length) return;
+    const next = [...queue];
+    [next[i], next[j]] = [next[j], next[i]];
+    save(next);
+  };
+
+  if (!youId) {
+    return <Card style={{ padding: 16, maxWidth: 640 }}><div className="text-[13px]" style={{ color: "var(--dim)" }}>Join this pool to build a draft queue.</div></Card>;
+  }
+
+  const btn = "flex h-7 w-7 items-center justify-center rounded-[8px] disabled:opacity-30";
+  const btnStyle: React.CSSProperties = { background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--dim)" };
+
+  return (
+    <div className="flex flex-col gap-4" style={{ maxWidth: 640 }}>
+      <Card style={{ padding: 16 }}>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-[14px] font-extrabold">Auto-draft</div>
+            <div className="text-[11.5px]" style={{ color: "var(--faint)" }}>When it&apos;s your turn, auto-pick your top available queued team — even if you&apos;re away.</div>
+          </div>
+          <button onClick={toggleAuto} disabled={pending} aria-pressed={autoDraft} className="relative h-7 w-12 shrink-0 rounded-full disabled:opacity-50" style={{ background: autoDraft ? "var(--accent)" : "var(--surface-2)", border: "1px solid var(--line)" }}>
+            <span className="absolute top-0.5 h-5 w-5 rounded-full" style={{ left: autoDraft ? 24 : 2, background: autoDraft ? "var(--accent-ink)" : "var(--dim)", transition: "left .15s" }} />
+          </button>
+        </div>
+      </Card>
+
+      <div>
+        <SectionLabel>Your queue · {queue.length}</SectionLabel>
+        <Card style={{ padding: "2px 12px" }}>
+          {queue.length === 0 ? (
+            <div className="py-4 text-[13px]" style={{ color: "var(--faint)" }}>Empty — add teams below to set your priority order.</div>
+          ) : queue.map((code, i) => {
+            const n = nByCode.get(code);
+            const taken = n?.owned;
+            return (
+              <div key={code} className="flex items-center gap-3 border-b py-2.5 last:border-b-0" style={{ borderColor: "var(--line)", opacity: taken ? 0.45 : 1 }}>
+                <span className="w-5 text-center text-[12px] font-bold" style={{ color: "var(--faint)" }}>{i + 1}</span>
+                <span className="flag" style={{ fontSize: 20 }}>{n?.flag ?? "🏳️"}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[13px] font-bold">{n?.name ?? code}</div>
+                  {taken && <div className="text-[10.5px] font-semibold" style={{ color: "var(--neg)" }}>Already drafted</div>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => move(i, -1)} disabled={pending || i === 0} className={btn} style={btnStyle}><Icon name="arrowUp" size={13} /></button>
+                  <button onClick={() => move(i, 1)} disabled={pending || i === queue.length - 1} className={btn} style={btnStyle}><Icon name="chevronDown" size={13} /></button>
+                  <button onClick={() => remove(code)} disabled={pending} className={btn} style={btnStyle}><Icon name="close" size={13} /></button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      </div>
+
+      <div>
+        <SectionLabel>Add to queue · best available</SectionLabel>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {available.map((n) => (
+            <button key={n.code} onClick={() => add(n.code)} disabled={pending} className="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 text-left disabled:opacity-50" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+              <span className="flag" style={{ fontSize: 18 }}>{n.flag}</span>
+              <span className="min-w-0 flex-1 truncate text-[12px] font-bold">{n.name}</span>
+              <Icon name="plus" size={13} color="var(--accent)" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DraftClient({ managers, order, picks, nations, rounds, poolId, youId, onClockId, myQueue, myAutoDraft }: {
+  managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[]; rounds: number;
+  poolId: string; youId: string | null; onClockId: string | null; myQueue: string[]; myAutoDraft: boolean;
+}) {
+  const [view, setView] = React.useState<"board" | "order" | "queue" | "big">("board");
   const [mock, setMock] = React.useState(false);
 
   return (
@@ -443,8 +538,8 @@ export function DraftClient({ managers, order, picks, nations, rounds, poolId, y
         totalPicks={order.length}
       />
 
-      <div className="flex max-w-[460px] gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
-        {([["board", "Grid", "grid"], ["order", "Order", "list"], ["big", "Big board", "cards"]] as const).map(([k, label, icon]) => (
+      <div className="flex max-w-[560px] gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+        {([["board", "Grid", "grid"], ["order", "Order", "list"], ["queue", "Queue", "flame"], ["big", "Big board", "cards"]] as const).map(([k, label, icon]) => (
           <button key={k} onClick={() => setView(k)} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-bold" style={{ background: view === k ? "var(--accent)" : "transparent", color: view === k ? "var(--accent-ink)" : "var(--dim)" }}>
             <Icon name={icon} size={14} color={view === k ? "var(--accent-ink)" : "var(--dim)"} /> {label}
           </button>
@@ -457,6 +552,8 @@ export function DraftClient({ managers, order, picks, nations, rounds, poolId, y
         </Card>
       ) : view === "order" ? (
         <OrderList managers={managers} order={order} picks={picks} youId={youId} />
+      ) : view === "queue" ? (
+        <QueuePanel poolId={poolId} queue={myQueue} autoDraft={myAutoDraft} nations={nations} youId={youId} />
       ) : (
         <div className="max-w-[640px]"><BigBoard nations={nations} managers={managers} /></div>
       )}

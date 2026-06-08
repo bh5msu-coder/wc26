@@ -52,6 +52,8 @@ export default async function DraftPage({ params }: { params: { poolId: string }
       poolId={params.poolId}
       youId={youId}
       onClockId={onClockId}
+      myQueue={pool.myQueue}
+      myAutoDraft={pool.myAutoDraft}
     />
   );
 }

@@ -60,6 +60,8 @@ export type PoolView = {
   weights: Weights;
   rounds: number;
   draftOrder: string[]; // membershipIds in overall pick order; [] = standard snake
+  myQueue: string[]; // requesting member's draft queue (nation codes)
+  myAutoDraft: boolean; // requesting member's auto-draft toggle
   managers: Manager[];
   nations: RosterNation[];
   standings: StandingRow[];
