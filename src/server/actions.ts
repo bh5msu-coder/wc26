@@ -40,3 +40,38 @@ export async function updateScoring(poolId: string, input: ScoringInput) {
   // recompute everything that depends on scoring
   revalidatePath(`/pools/${poolId}`, "layout");
 }
+
+/** Draft a nation for the requesting user — only valid when they're on the clock. */
+export async function draftNation(poolId: string, nationCode: string) {
+  const userId = await requireUserId();
+
+  const pool = await prisma.pool.findUnique({
+    where: { id: poolId },
+    include: { memberships: true, picks: true },
+  });
+  if (!pool) throw new Error("Pool not found.");
+
+  const me = pool.memberships.find((m) => m.userId === userId);
+  if (!me) throw new Error("You're not a member of this pool.");
+
+  const order = pool.draftOrder;
+  const picksMade = pool.picks.length;
+  if (order.length === 0) throw new Error("No draft order is set for this pool.");
+  if (picksMade >= order.length) throw new Error("The draft is already complete.");
+  if (order[picksMade] !== me.id) throw new Error("It's not your turn to pick.");
+
+  const code = String(nationCode).toUpperCase().trim();
+  if (pool.picks.some((p) => p.nationCode === code)) {
+    throw new Error("That nation has already been drafted.");
+  }
+  const nation = await prisma.nation.findUnique({ where: { code } });
+  if (!nation) throw new Error("Unknown nation.");
+
+  const round = pool.picks.filter((p) => p.membershipId === me.id).length + 1;
+
+  await prisma.pick.create({
+    data: { poolId, membershipId: me.id, nationCode: code, round, pickNumber: picksMade + 1 },
+  });
+
+  revalidatePath(`/pools/${poolId}`, "layout");
+}

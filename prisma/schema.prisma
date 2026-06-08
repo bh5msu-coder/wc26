@@ -157,4 +157,5 @@ model Pick {
   nation       Nation     @relation(fields: [nationCode], references: [code])
 
   @@unique([poolId, nationCode]) // a nation can only be drafted once per pool
+  @@unique([poolId, pickNumber]) // one pick per slot in the draft order
 }
