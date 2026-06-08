@@ -256,9 +256,9 @@ function MockDraft({ managers, order, nations, rounds, onClose }: {
 
 // ── Live draft control ──
 function DraftControl({
-  managers, nations, poolId, youId, onClockId, picksMade, totalPicks,
+  managers, nations, order, poolId, youId, onClockId, picksMade, totalPicks,
 }: {
-  managers: DraftManager[]; nations: DraftNation[]; poolId: string;
+  managers: DraftManager[]; nations: DraftNation[]; order: string[]; poolId: string;
   youId: string | null; onClockId: string | null; picksMade: number; totalPicks: number;
 }) {
   const router = useRouter();
@@ -272,6 +272,10 @@ function DraftControl({
     () => nations.filter((n) => !n.owned).sort((a, b) => b.strength - a.strength),
     [nations],
   );
+
+  // your next upcoming pick, and how many picks away it is
+  const nextIdx = youId ? order.findIndex((id, i) => i >= picksMade && id === youId) : -1;
+  const picksAway = nextIdx >= 0 ? nextIdx - picksMade : -1;
 
   // While it's someone else's turn, poll so your turn appears without a reload.
   React.useEffect(() => {
@@ -304,7 +308,14 @@ function DraftControl({
     <Card style={{ padding: 16, maxWidth: 760 }}>
       <div className="flex items-center gap-3" style={{ background: bannerBg, border: `1px solid ${yourTurn ? "transparent" : "var(--line)"}`, borderRadius: 12, padding: "11px 14px" }}>
         {onClock && !complete && <Avatar name={onClock.name} color={onClock.color} size={30} ring={yourTurn} />}
-        <div className="flex-1 text-[14px] font-extrabold" style={{ color: bannerInk }}>{label}</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-extrabold" style={{ color: bannerInk }}>{label}</div>
+          {!complete && !yourTurn && (
+            <div className="mt-0.5 text-[11.5px] font-semibold" style={{ color: "var(--faint)" }}>
+              {nextIdx === -1 ? "You have no more picks" : `Your next pick: #${nextIdx + 1} · ${picksAway} away`}
+            </div>
+          )}
+        </div>
         {pending && <div className="h-[18px] w-[18px] animate-spin-slow rounded-full" style={{ border: "2px solid rgba(10,14,21,0.25)", borderTopColor: yourTurn ? "var(--accent-ink)" : "var(--dim)" }} />}
       </div>
 
@@ -334,11 +345,79 @@ function DraftControl({
   );
 }
 
+// ── Sequential draft order list ──
+function OrderList({ managers, order, picks, youId }: {
+  managers: DraftManager[]; order: string[]; picks: DraftPick[]; youId: string | null;
+}) {
+  const mById = new Map(managers.map((m) => [m.id, m]));
+  const pickByNumber = new Map(picks.map((p) => [p.pickNumber, p]));
+  const picksMade = picks.length;
+  const complete = picksMade >= order.length;
+  const currentRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    currentRef.current?.scrollIntoView({ block: "nearest" });
+  }, [picksMade]);
+
+  // per-manager pick count, to label each slot as that manager's Round N
+  const roundCounter: Record<string, number> = {};
+
+  return (
+    <Card style={{ padding: "5px 7px", maxWidth: 520 }}>
+      <div className="flex max-h-[70vh] flex-col overflow-y-auto">
+        {order.map((id, i) => {
+          const pickNumber = i + 1;
+          roundCounter[id] = (roundCounter[id] ?? 0) + 1;
+          const r = roundCounter[id];
+          const m = mById.get(id);
+          const pick = pickByNumber.get(pickNumber);
+          const done = !!pick;
+          const isCurrent = !complete && i === picksMade;
+          const isYou = id === youId;
+          const ink = isCurrent ? "var(--accent-ink)" : "var(--text)";
+          return (
+            <div
+              key={i}
+              ref={isCurrent ? currentRef : undefined}
+              className="flex items-center gap-3 rounded-[10px] px-2.5 py-2"
+              style={{
+                background: isCurrent ? "var(--accent)" : isYou ? "rgba(198,255,58,0.08)" : "transparent",
+                border: `1px solid ${isCurrent ? "transparent" : isYou ? "rgba(198,255,58,0.22)" : "transparent"}`,
+                opacity: done ? 0.55 : 1,
+                marginBottom: 2,
+              }}
+            >
+              <span className="w-7 text-center display" style={{ fontSize: 15, color: isCurrent ? "var(--accent-ink)" : "var(--faint)" }}>{pickNumber}</span>
+              <Avatar name={m?.name ?? "?"} color={m?.color ?? "#888"} size={26} ring={isCurrent} />
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-bold" style={{ color: ink }}>
+                  {m?.name ?? "—"}{isYou ? " · you" : ""}
+                </div>
+                <div className="text-[10.5px]" style={{ color: isCurrent ? "rgba(10,14,21,0.6)" : "var(--faint)" }}>Round {r}</div>
+              </div>
+              {done ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="flag" style={{ fontSize: 18 }}>{pick!.flag}</span>
+                  <span className="text-[11px] font-extrabold">{pick!.code}</span>
+                </div>
+              ) : isCurrent ? (
+                <span className="text-[10.5px] font-extrabold uppercase tracking-wide" style={{ color: "var(--accent-ink)" }}>On the clock</span>
+              ) : (
+                <Icon name="clock" size={14} color="var(--faint)" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 export function DraftClient({ managers, order, picks, nations, rounds, poolId, youId, onClockId }: {
   managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[]; rounds: number;
   poolId: string; youId: string | null; onClockId: string | null;
 }) {
-  const [view, setView] = React.useState<"board" | "big">("board");
+  const [view, setView] = React.useState<"board" | "order" | "big">("board");
   const [mock, setMock] = React.useState(false);
 
   return (
@@ -356,6 +435,7 @@ export function DraftClient({ managers, order, picks, nations, rounds, poolId, y
       <DraftControl
         managers={managers}
         nations={nations}
+        order={order}
         poolId={poolId}
         youId={youId}
         onClockId={onClockId}
@@ -363,10 +443,10 @@ export function DraftClient({ managers, order, picks, nations, rounds, poolId, y
         totalPicks={order.length}
       />
 
-      <div className="flex max-w-[360px] gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
-        {([["board", "Draft board", "grid"], ["big", "Big board", "list"]] as const).map(([k, label, icon]) => (
+      <div className="flex max-w-[460px] gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+        {([["board", "Grid", "grid"], ["order", "Order", "list"], ["big", "Big board", "cards"]] as const).map(([k, label, icon]) => (
           <button key={k} onClick={() => setView(k)} className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-bold" style={{ background: view === k ? "var(--accent)" : "transparent", color: view === k ? "var(--accent-ink)" : "var(--dim)" }}>
-            <Icon name={icon as "grid" | "list"} size={14} color={view === k ? "var(--accent-ink)" : "var(--dim)"} /> {label}
+            <Icon name={icon} size={14} color={view === k ? "var(--accent-ink)" : "var(--dim)"} /> {label}
           </button>
         ))}
       </div>
@@ -375,6 +455,8 @@ export function DraftClient({ managers, order, picks, nations, rounds, poolId, y
         <Card style={{ padding: 14, maxWidth: 760 }}>
           <SnakeBoard managers={managers} order={order} picks={picks} />
         </Card>
+      ) : view === "order" ? (
+        <OrderList managers={managers} order={order} picks={picks} youId={youId} />
       ) : (
         <div className="max-w-[640px]"><BigBoard nations={nations} managers={managers} /></div>
       )}
