@@ -73,5 +73,84 @@ export async function draftNation(poolId: string, nationCode: string) {
     data: { poolId, membershipId: me.id, nationCode: code, round, pickNumber: picksMade + 1 },
   });
 
+  // a manual pick may hand the clock to auto-draft members — cascade through them
+  await runAutoPicks(poolId);
   revalidatePath(`/pools/${poolId}`, "layout");
+}
+
+/**
+ * Auto-pick for any on-the-clock member who has auto-draft on and a queued team
+ * still available. Loops until the clock lands on a manual member, the queue is
+ * exhausted, or the draft completes. Returns how many picks it made.
+ */
+async function runAutoPicks(poolId: string): Promise<number> {
+  let made = 0;
+  for (let guard = 0; guard < 200; guard++) {
+    const pool = await prisma.pool.findUnique({
+      where: { id: poolId },
+      include: { memberships: true, picks: true },
+    });
+    if (!pool) break;
+
+    const picksMade = pool.picks.length;
+    if (picksMade >= pool.draftOrder.length) break;
+
+    const onClockId = pool.draftOrder[picksMade];
+    const member = pool.memberships.find((m) => m.id === onClockId);
+    if (!member || !member.autoDraft) break;
+
+    const taken = new Set(pool.picks.map((p) => p.nationCode));
+    const code = member.queue.find((c) => !taken.has(c));
+    if (!code) break; // nothing left in their queue
+
+    const round = pool.picks.filter((p) => p.membershipId === member.id).length + 1;
+    try {
+      await prisma.pick.create({
+        data: { poolId, membershipId: member.id, nationCode: code, round, pickNumber: picksMade + 1 },
+      });
+      made++;
+    } catch {
+      break; // unique conflict (raced) — stop and let the next call retry
+    }
+  }
+  return made;
+}
+
+/** Set the requesting member's draft queue (nation codes, priority order). */
+export async function setQueue(poolId: string, codes: string[]) {
+  const userId = await requireUserId();
+  const me = await prisma.membership.findFirst({ where: { poolId, userId } });
+  if (!me) throw new Error("You're not a member of this pool.");
+
+  const upper = codes.map((c) => String(c).toUpperCase().trim());
+  const valid = await prisma.nation.findMany({
+    where: { code: { in: upper } },
+    select: { code: true },
+  });
+  const validSet = new Set(valid.map((n) => n.code));
+  const clean: string[] = [];
+  for (const c of upper) if (validSet.has(c) && !clean.includes(c)) clean.push(c);
+
+  await prisma.membership.update({ where: { id: me.id }, data: { queue: clean.slice(0, 64) } });
+  revalidatePath(`/pools/${poolId}`, "layout");
+}
+
+/** Toggle auto-draft for the requesting member. */
+export async function setAutoDraft(poolId: string, on: boolean) {
+  const userId = await requireUserId();
+  const me = await prisma.membership.findFirst({ where: { poolId, userId } });
+  if (!me) throw new Error("You're not a member of this pool.");
+
+  await prisma.membership.update({ where: { id: me.id }, data: { autoDraft: !!on } });
+  await runAutoPicks(poolId); // turning it on may immediately pick if it's their turn
+  revalidatePath(`/pools/${poolId}`, "layout");
+}
+
+/** Advance the draft through any on-the-clock auto-draft members. Safe for any member to call. */
+export async function autoAdvanceDraft(poolId: string) {
+  const userId = await requireUserId();
+  const me = await prisma.membership.findFirst({ where: { poolId, userId } });
+  if (!me) return;
+  const made = await runAutoPicks(poolId);
+  if (made > 0) revalidatePath(`/pools/${poolId}`, "layout");
 }
