@@ -116,6 +116,9 @@ model Pool {
   koPts          Int          @default(1)
   champPts       Int          @default(1)
   rounds         Int          @default(4) // snake draft rounds
+  // Custom draft order: membershipIds in overall pick order (length = members × rounds).
+  // Empty = fall back to a standard snake derived from membership order.
+  draftOrder     String[]     @default([])
   commissionerId String
   memberships    Membership[]
   picks          Pick[]

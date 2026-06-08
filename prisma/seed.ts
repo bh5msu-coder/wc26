@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { NATIONS, FIXTURES, PLAYERS, POOL } from "./seed-data";
+import { NATIONS, FIXTURES, PLAYERS, POOL, DRAFT_ORDER } from "./seed-data";
 
 const prisma = new PrismaClient();
 
@@ -57,10 +57,11 @@ async function main() {
     const commissionerId = userByHandle[SHARED_POOL.commissioner] ?? Object.values(userByHandle)[0];
     shared = await prisma.pool.create({ data: { name: SHARED_POOL.name, commissionerId } });
   }
+  const membershipByHandle: Record<string, string> = {};
   for (const p of PLAYERS) {
     const userId = userByHandle[p.id];
     const isCommish = shared.commissionerId === userId;
-    await prisma.membership.upsert({
+    const m = await prisma.membership.upsert({
       where: { poolId_userId: { poolId: shared.id, userId } },
       update: { displayName: p.name, color: p.color },
       create: {
@@ -71,9 +72,24 @@ async function main() {
         role: isCommish ? "COMMISSIONER" : "MEMBER",
       },
     });
+    membershipByHandle[p.id] = m.id;
   }
 
-  console.log(`✓ Seed complete — "${SHARED_POOL.name}" has ${PLAYERS.length} members.`);
+  // Apply the custom draft order: a membershipId for each overall pick (1..N),
+  // and set the round count to match (slots per manager).
+  const slots: { pick: number; handle: string }[] = [];
+  for (const [handle, picks] of Object.entries(DRAFT_ORDER)) {
+    for (const pick of picks) slots.push({ pick, handle });
+  }
+  slots.sort((a, b) => a.pick - b.pick);
+  const draftOrder = slots.map((s) => membershipByHandle[s.handle]).filter(Boolean);
+  const rounds = Math.max(...Object.values(DRAFT_ORDER).map((p) => p.length));
+  await prisma.pool.update({
+    where: { id: shared.id },
+    data: { draftOrder, rounds },
+  });
+
+  console.log(`✓ Seed complete — "${SHARED_POOL.name}" has ${PLAYERS.length} members and a ${draftOrder.length}-pick custom order.`);
   console.log(`  Sign in with any of: ${PLAYERS.map((p) => p.email).join(", ")}`);
 }
 

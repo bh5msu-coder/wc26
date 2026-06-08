@@ -12,21 +12,21 @@ function rating(n: DraftNation) {
   return n.owned ? n.points * 3 + 40 : n.strength;
 }
 
-// ── Snake board grid ──
+// ── Custom-order board grid ──
 function SnakeBoard({ managers, order, picks }: { managers: DraftManager[]; order: string[]; picks: DraftPick[] }) {
   const mById = new Map(managers.map((m) => [m.id, m]));
-  // byRound[ownerId][roundIndex] = pick
-  const byRound = new Map<string, Record<number, DraftPick>>();
-  const counts: Record<string, number> = {};
-  for (const p of [...picks].sort((a, b) => a.pickNumber - b.pickNumber)) {
-    counts[p.ownerId] = counts[p.ownerId] ?? 0;
-    const r = byRound.get(p.ownerId) ?? {};
-    r[counts[p.ownerId]] = p;
-    byRound.set(p.ownerId, r);
-    counts[p.ownerId]++;
-  }
-  const cols = order;
-  const numRounds = order.length ? Math.ceil(picks.length / order.length) : 0;
+  const memberCount = managers.length || 1;
+  const cols = order.slice(0, memberCount); // round-1 order = column order
+
+  // each manager's overall pick numbers, in order
+  const slotsByManager = new Map<string, number[]>();
+  order.forEach((id, i) => {
+    const arr = slotsByManager.get(id) ?? [];
+    arr.push(i + 1);
+    slotsByManager.set(id, arr);
+  });
+  const numRounds = Math.max(0, ...Array.from(slotsByManager.values(), (a) => a.length));
+  const pickByNumber = new Map(picks.map((p) => [p.pickNumber, p]));
 
   return (
     <div>
@@ -45,7 +45,8 @@ function SnakeBoard({ managers, order, picks }: { managers: DraftManager[]; orde
         <div key={r} className="mb-1.5 grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols.length}, 1fr)` }}>
           {cols.map((id) => {
             const m = mById.get(id)!;
-            const pick = byRound.get(id)?.[r];
+            const pickNumber = slotsByManager.get(id)?.[r];
+            const pick = pickNumber != null ? pickByNumber.get(pickNumber) : undefined;
             return (
               <div
                 key={id}
@@ -56,9 +57,18 @@ function SnakeBoard({ managers, order, picks }: { managers: DraftManager[]; orde
                   border: `1px solid ${m.isYou ? "rgba(198,255,58,0.25)" : "var(--line)"}`,
                 }}
               >
-                <span className="absolute left-1 top-0.5 text-[8px] font-bold" style={{ color: "var(--faint)" }}>{pick?.pickNumber}</span>
-                <span className="flag" style={{ fontSize: 20, lineHeight: 1 }}>{pick?.flag}</span>
-                <span className="text-[9px] font-extrabold tracking-wide">{pick?.code}</span>
+                <span className="absolute left-1 top-0.5 text-[8px] font-bold" style={{ color: "var(--faint)" }}>{pickNumber}</span>
+                {pick ? (
+                  <>
+                    <span className="flag" style={{ fontSize: 20, lineHeight: 1 }}>{pick.flag}</span>
+                    <span className="text-[9px] font-extrabold tracking-wide">{pick.code}</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 18, lineHeight: 1, color: "var(--line-strong)" }}>·</span>
+                    <span className="text-[9px] font-extrabold tracking-wide" style={{ color: "var(--faint)" }}>—</span>
+                  </>
+                )}
               </div>
             );
           })}
@@ -66,7 +76,7 @@ function SnakeBoard({ managers, order, picks }: { managers: DraftManager[]; orde
       ))}
       <div className="mt-2.5 flex items-center justify-center gap-1.5">
         <Icon name="swap" size={13} color="var(--faint)" />
-        <span className="text-[11px]" style={{ color: "var(--faint)" }}>Custom order · {numRounds} rounds · {picks.length} picks</span>
+        <span className="text-[11px]" style={{ color: "var(--faint)" }}>Custom order · {numRounds} rounds · {order.length} picks</span>
       </div>
     </div>
   );
@@ -121,14 +131,8 @@ function MockDraft({ managers, order, nations, rounds, onClose }: {
   managers: DraftManager[]; order: string[]; nations: DraftNation[]; rounds: number; onClose: () => void;
 }) {
   const youId = managers.find((m) => m.isYou)?.id ?? order[0];
-  const snake = React.useMemo(() => {
-    const o: string[] = [];
-    for (let r = 0; r < rounds; r++) {
-      const row = r % 2 === 0 ? order : [...order].reverse();
-      row.forEach((id) => o.push(id));
-    }
-    return o;
-  }, [order, rounds]);
+  // `order` is already the full overall-pick sequence (custom order).
+  const snake = order;
 
   const [pickIdx, setPickIdx] = React.useState(0);
   const [taken, setTaken] = React.useState<Record<string, string>>({});
@@ -248,12 +252,11 @@ function MockDraft({ managers, order, nations, rounds, onClose }: {
   );
 }
 
-export function DraftClient({ managers, order, picks, nations }: {
-  managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[];
+export function DraftClient({ managers, order, picks, nations, rounds }: {
+  managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[]; rounds: number;
 }) {
   const [view, setView] = React.useState<"board" | "big">("board");
   const [mock, setMock] = React.useState(false);
-  const rounds = managers.length ? Math.round(picks.length / managers.length) : 4;
 
   return (
     <div className="flex flex-col gap-5">

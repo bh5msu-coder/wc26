@@ -105,6 +105,7 @@ export async function getPoolView(poolId: string, userId: string): Promise<PoolV
     inviteCode: pool.inviteCode,
     weights: w,
     rounds: pool.rounds,
+    draftOrder: pool.draftOrder,
     managers,
     nations,
     standings,

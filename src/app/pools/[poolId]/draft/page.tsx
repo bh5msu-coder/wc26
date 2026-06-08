@@ -11,11 +11,18 @@ export default async function DraftPage({ params }: { params: { poolId: string }
 
   const managers = pool.managers.map((m) => ({ id: m.membershipId, name: m.name, color: m.color, isYou: m.isYou }));
 
-  // round-1 draft order, by pick number
-  const order = rawPicks
-    .filter((p) => p.round === 1)
-    .sort((a, b) => a.pickNumber - b.pickNumber)
-    .map((p) => p.membershipId);
+  // Full draft order (membershipId per overall pick). Use the pool's stored
+  // custom order if set, otherwise a standard snake from membership order.
+  let order: string[];
+  if (pool.draftOrder.length) {
+    order = pool.draftOrder;
+  } else {
+    const base = pool.managers.map((m) => m.membershipId);
+    order = [];
+    for (let r = 0; r < pool.rounds; r++) {
+      order.push(...(r % 2 === 0 ? base : [...base].reverse()));
+    }
+  }
 
   const picks: DraftPick[] = rawPicks.map((p) => ({
     pickNumber: p.pickNumber,
@@ -31,5 +38,5 @@ export default async function DraftPage({ params }: { params: { poolId: string }
     owned: n.ownerId != null, strength: n.strength, points: n.points, ownerId: n.ownerId,
   }));
 
-  return <DraftClient managers={managers} order={order} picks={picks} nations={nations} />;
+  return <DraftClient managers={managers} order={order} picks={picks} nations={nations} rounds={pool.rounds} />;
 }

@@ -59,6 +59,7 @@ export type PoolView = {
   inviteCode: string;
   weights: Weights;
   rounds: number;
+  draftOrder: string[]; // membershipIds in overall pick order; [] = standard snake
   managers: Manager[];
   nations: RosterNation[];
   standings: StandingRow[];
