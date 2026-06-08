@@ -5,19 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Icon } from "@/components/ui/Icon";
 
-const DEMO = [
-  { email: "tom@wc26.app", label: "Tom (commissioner)" },
-  { email: "zd@wc26.app", label: "ZD" },
-  { email: "stove@wc26.app", label: "Stove" },
-];
-
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") || params.get("from") || "/pools";
 
-  const [email, setEmail] = React.useState("tom@wc26.app");
-  const [password, setPassword] = React.useState("wc26demo");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
@@ -28,7 +22,7 @@ export function LoginForm() {
     const res = await signIn("credentials", { email, password, redirect: false });
     setPending(false);
     if (res?.error) {
-      setError("Those credentials didn't match. Try a demo account below.");
+      setError("Those credentials didn't match. Please try again.");
       return;
     }
     router.push(callbackUrl);
@@ -67,17 +61,6 @@ export function LoginForm() {
           {pending ? "Signing in…" : "Sign in"}
         </button>
       </form>
-
-      <div className="mt-7 rounded-[14px] p-4" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
-        <div className="mb-2 text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--faint)" }}>Demo accounts · password “wc26demo”</div>
-        <div className="flex flex-wrap gap-2">
-          {DEMO.map((d) => (
-            <button key={d.email} onClick={() => { setEmail(d.email); setPassword("wc26demo"); }} className="rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: "var(--chip-bg)", border: "1px solid var(--line)", color: "var(--dim)" }}>
-              {d.label}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
