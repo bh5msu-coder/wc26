@@ -115,8 +115,9 @@ See **[DEPLOY.md](./DEPLOY.md)** for one-click Vercel + Postgres setup.
   real results feed to go live; the scoring + simulator read straight from them.
 - The mock-draft is a client-side simulator. A live multiplayer draft would add a
   `DraftRoom` model + websockets / server actions with optimistic updates.
-- The seeded demo pool runs a custom 8-manager / 6-round draft order. Pools store their own
-  `rounds`; create-a-pool starts empty so you can wire up your own draft flow.
+- The seed creates the demo accounts and the tournament catalog only — no demo pool.
+  Sign in and create your own pool; pools store their own `rounds` and start empty so you
+  can wire up your own draft flow.
 - Auth is passwordless: sign in with just an email that matches an existing account.
   Add the GitHub provider by setting `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`, or swap in
   an email magic-link provider if you want verified email delivery.
