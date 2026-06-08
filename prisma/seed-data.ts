@@ -117,6 +117,18 @@ export const DRAFT_PICKS: [string, string][] = [
 
 export const DRAFT_ORDER_R1 = ["bard", "goalie", "andy", "brain", "jarn", "tom", "zd", "stove"];
 
+// Custom Wilboi 26 draft order — each manager's overall pick numbers (1..48).
+export const DRAFT_ORDER: Record<string, number[]> = {
+  bard: [1, 15, 25, 35, 46, 48],
+  goalie: [2, 14, 24, 34, 44, 47],
+  andy: [3, 13, 23, 33, 43, 45],
+  brain: [4, 12, 22, 31, 41, 42],
+  jarn: [5, 11, 21, 29, 39, 40],
+  tom: [6, 10, 20, 28, 37, 38],
+  zd: [7, 9, 19, 27, 32, 36],
+  stove: [8, 16, 17, 18, 26, 30],
+};
+
 export type SeedFixture = {
   id: string; stage: string; status: string;
   homeCode: string; awayCode: string;
