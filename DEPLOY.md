@@ -56,13 +56,18 @@ npm run db:seed
 > instead of `db push`.
 
 ## 6. Sign in
-Visit the site and sign in with a seeded account (e.g. `tom@wc26.app` / `wc26demo` — the
-commissioner), or register your own pool from `/pools`.
+Visit the site and sign in with a seeded account — logins are **passwordless**, so just
+enter the email (e.g. `tom@wc26.app`, the commissioner) and you're in. From there you can
+create or join pools from `/pools`.
 
 ---
 
 ### Troubleshooting
 - **Prisma error on the Edge / middleware** — already handled: `middleware.ts` uses the
   DB-free `auth.config.ts`. Don't import `auth.ts` (or anything Prisma) into middleware.
+- **`/api/auth/error` → "There is a problem with the server configuration"** — Auth.js v5
+  could not start. Almost always a missing **`AUTH_SECRET`**: set it in
+  Project → Settings → Environment Variables (Production) and redeploy. If it's set, check
+  that `DATABASE_URL`/`DIRECT_URL` are valid and the schema has been pushed/seeded.
 - **`AUTH_SECRET` missing** — Auth.js v5 requires it in production; set it before deploying.
 - **Seed can't connect** — make sure `DIRECT_URL` is the non-pooled connection string.

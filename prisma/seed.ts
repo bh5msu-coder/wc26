@@ -1,11 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { NATIONS, FIXTURES, PLAYERS, DRAFT_PICKS, POOL } from "./seed-data";
-import { hashPassword } from "../src/lib/password";
 
 const prisma = new PrismaClient();
-
-// Demo password for every seeded account so you can sign in immediately.
-const DEMO_PASSWORD = "wc26demo";
 
 async function main() {
   console.log("→ Seeding tournament catalog…");
@@ -26,13 +22,12 @@ async function main() {
   }
 
   console.log("→ Seeding users…");
-  const passwordHash = await hashPassword(DEMO_PASSWORD);
   const userByHandle: Record<string, string> = {};
   for (const p of PLAYERS) {
     const user = await prisma.user.upsert({
       where: { email: p.email },
       update: { name: p.full },
-      create: { email: p.email, name: p.full, passwordHash },
+      create: { email: p.email, name: p.full },
     });
     userByHandle[p.id] = user.id;
   }
@@ -82,8 +77,7 @@ async function main() {
   }
 
   console.log(`✓ Seed complete. Pool "${pool.name}" with invite code ${pool.inviteCode}`);
-  console.log(`  Sign in as any of: ${PLAYERS.map((p) => p.email).join(", ")}`);
-  console.log(`  Demo password: ${DEMO_PASSWORD}`);
+  console.log(`  Sign in (no password — just the email) as any of: ${PLAYERS.map((p) => p.email).join(", ")}`);
 }
 
 main()
