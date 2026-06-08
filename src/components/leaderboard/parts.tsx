@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Avatar, Chip, Flag, LiveDot, SectionLabel } from "@/components/ui/primitives";
-import { Icon, ScoreIcon } from "@/components/ui/Icon";
+import { Avatar, Chip, LiveDot } from "@/components/ui/primitives";
+import { Icon } from "@/components/ui/Icon";
 import type { PoolView, StandingRow } from "@/lib/types";
 
 export function HeroCard({ pool, liveScore }: { pool: PoolView; liveScore?: string }) {
@@ -21,7 +21,6 @@ export function HeroCard({ pool, liveScore }: { pool: PoolView; liveScore?: stri
 
       <div className="relative mb-4 flex items-center gap-2">
         <Chip tone="accent"><Icon name="trophy" size={12} /> {me.rank === 1 ? "1ST PLACE" : `RANK ${me.rank}`}</Chip>
-        <Chip tone="pos"><Icon name="arrowUp" size={11} /> +{me.today} today</Chip>
         <div className="ml-auto text-[12px] font-semibold" style={{ color: "var(--dim)" }}>{me.alive} alive</div>
       </div>
 
@@ -79,36 +78,10 @@ export function StandingRowItem({ row, leader }: { row: StandingRow; leader: num
           )}
         </div>
         <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--faint)" }}>
-          {row.rank === 1 ? "Leads the pool" : `${gap} behind`} · +{row.today} today
+          {row.rank === 1 ? "Leads the pool" : `${gap} behind`}
         </div>
       </div>
       <div className="display" style={{ fontSize: 26 }}>{row.total}</div>
-    </div>
-  );
-}
-
-type FeedEv = { t: string; code: string; icon: string; text: string; pts: string; who: string; detail: string };
-
-export function FeedRowItem({
-  ev, flag, manager,
-}: { ev: FeedEv; flag: string; manager?: { name: string; color: string } }) {
-  const tone = ev.icon === "ko" ? "var(--accent-2)" : ev.icon === "cs" ? "var(--pos)" : ev.icon === "champ" ? "var(--gold)" : "var(--accent)";
-  return (
-    <div className="flex items-center gap-3 border-b py-2.5" style={{ borderColor: "var(--line)" }}>
-      <div className="relative">
-        <Flag flag={flag} size={36} />
-        <div className="absolute flex items-center justify-center rounded-full" style={{ right: -4, bottom: -4, width: 18, height: 18, background: "var(--surface)", border: "1px solid var(--line)", color: tone }}>
-          <ScoreIcon kind={ev.icon} size={11} color={tone} />
-        </div>
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[13.5px] font-semibold">{ev.text}</div>
-        <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--faint)" }}>{ev.detail} · {ev.t}</div>
-      </div>
-      <div className="flex items-center gap-2">
-        <span className="display" style={{ fontSize: 18, color: "var(--pos)" }}>{ev.pts}</span>
-        {manager && <Avatar name={manager.name} color={manager.color} size={22} />}
-      </div>
     </div>
   );
 }
