@@ -5,7 +5,7 @@
   "description": "Fantasy World Cup 26 draft pool — Next.js app (Vercel-ready)",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && if [ -n \"$DATABASE_URL\" ]; then export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; prisma db push --accept-data-loss && (tsx prisma/seed.ts || echo 'seed step skipped'); else echo 'no DATABASE_URL set - skipping db push/seed'; fi && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
