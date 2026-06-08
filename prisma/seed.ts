@@ -12,15 +12,19 @@ async function main() {
   for (const n of NATIONS) {
     await prisma.nation.upsert({
       where: { code: n.code },
-      update: { ...n },
+      // Only refresh static facts on reseed — preserve live W/L/GF/etc. so a
+      // deploy never wipes results pulled by the cron.
+      update: { name: n.name, flag: n.flag, group: n.group, strength: n.strength },
       create: { ...n },
     });
   }
 
-  // Replace fixtures wholesale so any stale scores/results are cleared.
-  await prisma.fixture.deleteMany({});
-  for (const f of FIXTURES) {
-    await prisma.fixture.create({ data: { ...f, events: f.events ?? undefined } });
+  // Seed the placeholder schedule only when there are no fixtures yet; once the
+  // results sync owns the fixture list, leave it alone.
+  if ((await prisma.fixture.count()) === 0) {
+    for (const f of FIXTURES) {
+      await prisma.fixture.create({ data: { ...f, events: f.events ?? undefined } });
+    }
   }
 
   console.log("→ Seeding users…");
