@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Twemoji country-flag polyfill so flags render on every OS ── */
+@font-face {
+  font-family: "Twemoji Country Flags";
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E0063, U+E0065, U+E0067, U+E006C,
+    U+E006E, U+E0073-E0074, U+E0077, U+E007F;
+  src: url("https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1.8/dist/TwemojiCountryFlags.woff2")
+    format("woff2");
+  font-display: swap;
+}
+
+/* ── Broadcast theme tokens (mirrors prototype theme.js) ── */
+:root {
+  --bg: #0a0e15;
+  --bg-grad: radial-gradient(120% 80% at 50% -10%, #16243a 0%, #0a0e15 55%);
+  --surface: #121a26;
+  --surface-2: #1a2433;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #f3f7fc;
+  --dim: rgba(243, 247, 252, 0.6);
+  --faint: rgba(243, 247, 252, 0.34);
+  --accent: #c6ff3a;
+  --accent-ink: #0a0e15;
+  --accent-2: #3b86ff;
+  --pos: #34e29b;
+  --neg: #ff5c72;
+  --gold: #ffc83d;
+  --chip-bg: rgba(255, 255, 255, 0.06);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-grad), var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  font-family: var(--font-body), "Twemoji Country Flags", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* flags pick up the polyfill font first */
+.flag {
+  font-family: "Twemoji Country Flags", var(--font-body), sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+button {
+  font-family: inherit;
+}
+button:active {
+  transform: scale(0.99);
+}
+
+.display {
+  font-family: var(--font-display), "Twemoji Country Flags", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
