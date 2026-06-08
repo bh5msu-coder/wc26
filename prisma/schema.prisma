@@ -1,0 +1,158 @@
+// WC26 Draft Pool — Prisma schema
+// Postgres (Vercel Postgres / Neon / Supabase). Run `prisma db push` then `prisma db seed`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Auth.js (NextAuth) models — standard Prisma adapter shape
+// ─────────────────────────────────────────────────────────────
+model User {
+  id            String       @id @default(cuid())
+  name          String?
+  email         String?      @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // for credentials login (optional, demo uses magic-link/OAuth)
+  accounts      Account[]
+  sessions      Session[]
+  memberships   Membership[]
+  createdAt     DateTime     @default(now())
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tournament catalog — GLOBAL facts shared by every pool
+// (a nation's record is the same no matter who drafted it)
+// ─────────────────────────────────────────────────────────────
+model Nation {
+  code      String  @id // "ARG", "ENG", ...
+  name      String
+  flag      String // emoji flag
+  group     String // "A".."L"
+  // live record across ALL matches so far
+  W         Int     @default(0)
+  D         Int     @default(0)
+  L         Int     @default(0)
+  GF        Int     @default(0) // goals scored
+  CS        Int     @default(0) // clean sheets
+  KOW       Int     @default(0) // knockout wins
+  round     String  @default("Group") // current standing / where eliminated
+  alive     Boolean @default(false)
+  champion  Boolean @default(false)
+  // attack/defense strength used by the Monte Carlo predictor
+  strength  Float   @default(50)
+  picks     Pick[]
+}
+
+model Fixture {
+  id        String  @id
+  stage     String // "Quarter-final", "Round of 16", ...
+  status    String // "live" | "upcoming" | "final"
+  homeCode  String
+  awayCode  String
+  hs        Int? // home score
+  as        Int? // away score
+  minute    String? // "62'" when live
+  whenLabel String? // "Today · 8:00 PM"
+  venue     String?
+  events    Json? // [{ t, code, text, kind }]
+  sort      Int     @default(0)
+}
+
+// ─────────────────────────────────────────────────────────────
+// Pool-specific models
+// ─────────────────────────────────────────────────────────────
+model Pool {
+  id             String       @id @default(cuid())
+  name           String
+  season         String       @default("World Cup 26")
+  stageLabel     String       @default("Quarter-finals")
+  inviteCode     String       @unique @default(cuid())
+  // scoring weights (commissioner-editable)
+  winPts         Int          @default(3)
+  drawPts        Int          @default(1)
+  goalPts        Int          @default(1)
+  csPts          Int          @default(1)
+  koPts          Int          @default(1)
+  champPts       Int          @default(1)
+  rounds         Int          @default(4) // snake draft rounds
+  commissionerId String
+  memberships    Membership[]
+  picks          Pick[]
+  createdAt      DateTime     @default(now())
+}
+
+enum Role {
+  COMMISSIONER
+  MEMBER
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  poolId      String
+  userId      String
+  displayName String // shown on the leaderboard, e.g. "Tom"
+  color       String   @default("#C6FF3A")
+  role        Role     @default(MEMBER)
+  pool        Pool     @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  picks       Pick[]
+  joinedAt    DateTime @default(now())
+
+  @@unique([poolId, userId])
+}
+
+model Pick {
+  id           String     @id @default(cuid())
+  poolId       String
+  membershipId String
+  nationCode   String
+  round        Int // 1..rounds
+  pickNumber   Int // overall pick order, 1..(members*rounds)
+  pool         Pool       @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  nation       Nation     @relation(fields: [nationCode], references: [code])
+
+  @@unique([poolId, nationCode]) // a nation can only be drafted once per pool
+}
