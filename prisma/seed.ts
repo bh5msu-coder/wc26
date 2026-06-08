@@ -4,6 +4,16 @@ import { NATIONS, FIXTURES, PLAYERS, DRAFT_PICKS, POOL } from "./seed-data";
 const prisma = new PrismaClient();
 
 async function main() {
+  // Safe to run on every deploy: if the database already has data, do nothing
+  // (so we never wipe a pool real members have joined). Set SEED_FORCE=1 to
+  // reseed the demo pool from scratch.
+  const force = process.env.SEED_FORCE === "1";
+  const existingPools = await prisma.pool.count();
+  if (existingPools > 0 && !force) {
+    console.log(`✓ Seed skipped — database already has ${existingPools} pool(s). Set SEED_FORCE=1 to reseed.`);
+    return;
+  }
+
   console.log("→ Seeding tournament catalog…");
   for (const n of NATIONS) {
     await prisma.nation.upsert({
