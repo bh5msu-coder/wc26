@@ -102,8 +102,10 @@ npm run db:seed
 npm run dev      # http://localhost:3000
 ```
 
-**Demo logins** (printed by the seed): `tom@wc26.app` (commissioner), plus `bard@`,
-`goalie@`, `andy@`, `brain@`, `jarn@`, `zd@`, `stove@` `wc26.app` — password `wc26demo`.
+**Demo logins**: `tom@wc26.app` (commissioner), plus `bard@`, `goalie@`, `andy@`,
+`brain@`, `jarn@`, `zd@`, `stove@` `wc26.app`. The password is whatever you set in
+`SEED_PASSWORD` when seeding — or, if you leave it unset, a random one the seed
+generates and prints to the console.
 
 See **[DEPLOY.md](./DEPLOY.md)** for one-click Vercel + Postgres setup.
 
