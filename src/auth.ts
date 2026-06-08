@@ -4,7 +4,6 @@ import GitHub from "next-auth/providers/github";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { authConfig } from "@/auth.config";
 import { prisma } from "@/lib/db";
-import { verifyPassword } from "@/lib/password";
 
 const githubConfigured = !!process.env.AUTH_GITHUB_ID && !!process.env.AUTH_GITHUB_SECRET;
 
@@ -19,18 +18,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: "Email",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
       },
+      // Passwordless: anyone can sign in as an existing account by entering
+      // its email. There is no password to check — the account just has to exist.
       async authorize(credentials) {
         const email = String(credentials?.email ?? "").toLowerCase().trim();
-        const password = String(credentials?.password ?? "");
-        if (!email || !password) return null;
+        if (!email) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user?.passwordHash) return null;
-
-        const ok = await verifyPassword(password, user.passwordHash);
-        if (!ok) return null;
+        if (!user) return null;
 
         return { id: user.id, name: user.name, email: user.email, image: user.image };
       },

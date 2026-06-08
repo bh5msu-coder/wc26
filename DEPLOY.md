@@ -56,10 +56,9 @@ npm run db:seed
 > instead of `db push`.
 
 ## 6. Sign in
-Visit the site and sign in with a seeded account (e.g. `tom@wc26.app` — the
-commissioner). The password is whatever you set in `SEED_PASSWORD` before seeding, or
-the random one the seed printed to its console if you left it unset. Or register your
-own pool from `/pools`.
+Visit the site and sign in with a seeded account — logins are **passwordless**, so just
+enter the email (e.g. `tom@wc26.app`, the commissioner) and you're in. From there you can
+create or join pools from `/pools`.
 
 ---
 

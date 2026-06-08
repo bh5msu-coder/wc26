@@ -11,7 +11,6 @@ export function LoginForm() {
   const callbackUrl = params.get("callbackUrl") || params.get("from") || "/pools";
 
   const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
@@ -19,10 +18,10 @@ export function LoginForm() {
     e.preventDefault();
     setError(null);
     setPending(true);
-    const res = await signIn("credentials", { email, password, redirect: false });
+    const res = await signIn("credentials", { email, redirect: false });
     setPending(false);
     if (res?.error) {
-      setError("Those credentials didn't match. Please try again.");
+      setError("We couldn't find an account for that email.");
       return;
     }
     router.push(callbackUrl);
@@ -42,16 +41,12 @@ export function LoginForm() {
       </div>
 
       <h1 className="display" style={{ fontSize: 34 }}>Welcome back</h1>
-      <p className="mt-1.5 text-[14px]" style={{ color: "var(--dim)" }}>Sign in to your draft pool.</p>
+      <p className="mt-1.5 text-[14px]" style={{ color: "var(--dim)" }}>Enter your email to sign in to your draft pool.</p>
 
       <form onSubmit={submit} className="mt-7 flex flex-col gap-3">
         <label className="flex flex-col gap-1.5">
           <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--faint)" }}>Email</span>
-          <input className={field} style={fieldStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
-        </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--faint)" }}>Password</span>
-          <input className={field} style={fieldStyle} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+          <input className={field} style={fieldStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" placeholder="you@wc26.app" required />
         </label>
 
         {error && <div className="rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold" style={{ background: "rgba(255,92,114,0.14)", color: "var(--neg)" }}>{error}</div>}

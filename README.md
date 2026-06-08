@@ -27,7 +27,7 @@ ready to deploy to **Vercel** with a Postgres database.
 | **Predictions** | `/pools/[id]/predictions` | **Monte Carlo** title odds, champion odds, projected scores + ranges |
 | **Scoring** | `/pools/[id]/scoring` | Scoring rules — commissioner can tune weights; everything recomputes |
 
-Plus: email/password auth (+ optional GitHub OAuth), **multiple pools** per user,
+Plus: passwordless email auth (+ optional GitHub OAuth), **multiple pools** per user,
 create-a-pool and join-by-invite-code.
 
 ---
@@ -57,7 +57,6 @@ src/
     scoring.ts              Point model (parameterised by pool weights)
     simulate.ts             Monte Carlo tournament engine
     session.ts              requireUserId() / getUserId()
-    password.ts             scrypt password hashing (no native deps)
   server/
     pools.ts                Data access — builds the computed PoolView
     actions.ts              updateScoring server action (commissioner-only)
@@ -102,10 +101,10 @@ npm run db:seed
 npm run dev      # http://localhost:3000
 ```
 
-**Demo logins**: `tom@wc26.app` (commissioner), plus `bard@`, `goalie@`, `andy@`,
-`brain@`, `jarn@`, `zd@`, `stove@` `wc26.app`. The password is whatever you set in
-`SEED_PASSWORD` when seeding — or, if you leave it unset, a random one the seed
-generates and prints to the console.
+**Logins are passwordless** — sign in with just an email. Seeded accounts:
+`tom@wc26.app` (commissioner), plus `bard@`, `goalie@`, `andy@`, `brain@`, `jarn@`,
+`zd@`, `stove@` `wc26.app`. Enter the email on the login page; if an account exists,
+you're in.
 
 See **[DEPLOY.md](./DEPLOY.md)** for one-click Vercel + Postgres setup.
 
@@ -118,5 +117,6 @@ See **[DEPLOY.md](./DEPLOY.md)** for one-click Vercel + Postgres setup.
   `DraftRoom` model + websockets / server actions with optimistic updates.
 - The seeded demo pool runs a custom 8-manager / 6-round draft order. Pools store their own
   `rounds`; create-a-pool starts empty so you can wire up your own draft flow.
-- Auth ships with email/password (scrypt). Add the GitHub provider by setting
-  `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`, or swap in an email magic-link provider.
+- Auth is passwordless: sign in with just an email that matches an existing account.
+  Add the GitHub provider by setting `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET`, or swap in
+  an email magic-link provider if you want verified email delivery.
