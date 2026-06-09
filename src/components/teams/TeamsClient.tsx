@@ -17,7 +17,7 @@ type Sort = "rank" | "strength" | "group";
 function StrengthBar({ value }: { value: number }) {
   const c = value >= 80 ? "var(--accent)" : value >= 60 ? "var(--accent-2)" : value >= 40 ? "var(--gold)" : "var(--neg)";
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--chip-bg)" }}>
+    <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--chip-bg)" }}>
       <div className="h-full rounded-full" style={{ width: `${value}%`, background: c }} />
     </div>
   );
@@ -26,9 +26,9 @@ function StrengthBar({ value }: { value: number }) {
 function TeamCard({ n }: { n: TeamNation }) {
   const played = n.W + n.D + n.L;
   return (
-    <Card style={{ padding: 14 }}>
+    <Card style={{ padding: 18 }}>
       <div className="flex items-center gap-3">
-        <Flag flag={n.flag} size={40} />
+        <Flag flag={n.flag} size={46} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="truncate text-[15px] font-extrabold">{n.name}</span>
@@ -72,7 +72,7 @@ function TeamCard({ n }: { n: TeamNation }) {
 function GroupsBoard({ nations }: { nations: TeamNation[] }) {
   const groups = [...new Set(nations.map((n) => n.group))].sort();
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {groups.map((g) => {
         const rows = nations
           .filter((n) => n.group === g)
@@ -129,7 +129,7 @@ export function TeamsClient({ nations }: { nations: TeamNation[] }) {
   const drafted = nations.filter((n) => n.ownerName).length;
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[11px] font-extrabold uppercase tracking-[0.22em]" style={{ color: "var(--faint)" }}>The field · {nations.length} nations · {drafted} drafted</div>
@@ -177,7 +177,7 @@ export function TeamsClient({ nations }: { nations: TeamNation[] }) {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {sorted.map((n) => <TeamCard key={n.code} n={n} />)}
           </div>
           {sorted.length === 0 && <SectionLabel>No teams in this confederation.</SectionLabel>}
