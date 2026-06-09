@@ -23,7 +23,7 @@ export default async function PredictionsPage({ params }: { params: { poolId: st
   const nationByCode = new Map(pool.nations.map((n) => [n.code, n]));
   const nations: PredNation[] = Array.from(bracketCodes).map((code) => {
     const n = nationByCode.get(code)!;
-    return { code: n.code, name: n.name, flag: n.flag, strength: n.strength, ownerId: n.ownerId };
+    return { code: n.code, name: n.name, flag: n.flag, strength: n.strength, ownerId: n.ownerId, fifaRank: n.fifaRank };
   });
 
   return (

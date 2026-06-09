@@ -19,7 +19,45 @@ export type SeedNation = {
   alive: boolean;
   champion: boolean;
   strength: number;
+  fifaRank: number | null;
+  fifaPoints: number | null;
+  confederation: string | null;
+  titles: number;
 };
+
+// ── World Cup facts (FIFA Men's World Ranking, 1 Apr 2026 official; WC titles) ──
+// [rank, points, confederation, titles]. strength is derived from points below.
+type NationFacts = [rank: number, points: number, conf: string, titles: number];
+const FACTS: Record<string, NationFacts> = {
+  FRA: [1, 1877, "UEFA", 2], ESP: [2, 1876, "UEFA", 1], ARG: [3, 1875, "CONMEBOL", 3],
+  ENG: [4, 1800, "UEFA", 1], POR: [5, 1772, "UEFA", 0], BRA: [6, 1760, "CONMEBOL", 5],
+  NED: [7, 1757, "UEFA", 0], MAR: [8, 1755, "CAF", 0], BEL: [9, 1734, "UEFA", 0],
+  GER: [10, 1730, "UEFA", 4], CRO: [11, 1717, "UEFA", 0], ITA: [12, 1700, "UEFA", 4],
+  COL: [13, 1693, "CONMEBOL", 0], SEN: [14, 1688, "CAF", 0], MEX: [15, 1681, "CONCACAF", 0],
+  USA: [16, 1673, "CONCACAF", 0], URU: [17, 1673, "CONMEBOL", 2], JPN: [18, 1660, "AFC", 0],
+  SUI: [19, 1649, "UEFA", 0], DEN: [20, 1620, "UEFA", 0], IRN: [21, 1615, "AFC", 0],
+  TUR: [22, 1599, "UEFA", 0], ECU: [23, 1594, "CONMEBOL", 0], AUT: [24, 1593, "UEFA", 0],
+  KOR: [25, 1588, "AFC", 0], NGA: [26, 1585, "CAF", 0], AUS: [27, 1580, "AFC", 0],
+  ALG: [28, 1564, "CAF", 0], EGY: [29, 1563, "CAF", 0], CAN: [30, 1556, "CONCACAF", 0],
+  NOR: [31, 1550, "UEFA", 0], PAN: [33, 1540, "CONCACAF", 0], CIV: [34, 1532, "CAF", 0],
+  POL: [35, 1528, "UEFA", 0], SRB: [39, 1508, "UEFA", 0], PAR: [40, 1503, "CONMEBOL", 0],
+  SCO: [43, 1498, "UEFA", 0], TUN: [44, 1483, "CAF", 0], CMR: [45, 1481, "CAF", 0],
+  UZB: [50, 1465, "AFC", 0], CRC: [51, 1459, "CONCACAF", 0], QAT: [55, 1454, "AFC", 0],
+  KSA: [61, 1421, "AFC", 0], JOR: [63, 1391, "AFC", 0], CPV: [69, 1366, "CAF", 0],
+  JAM: [71, 1357, "CONCACAF", 0], GHA: [74, 1346, "CAF", 0], NZL: [85, 1295, "OFC", 0],
+};
+
+// FIFA points → 0–100 strength: France ~1877 ≈ 95, weak qualifier ~1300 ≈ 20.
+export function strengthFromPoints(points: number): number {
+  return Math.max(20, Math.min(99, Math.round(((points - 1300) / 580) * 75 + 20)));
+}
+
+function factsFor(code: string): Pick<SeedNation, "strength" | "fifaRank" | "fifaPoints" | "confederation" | "titles"> {
+  const f = FACTS[code];
+  if (!f) return { strength: 50, fifaRank: null, fifaPoints: null, confederation: null, titles: 0 };
+  const [rank, points, conf, titles] = f;
+  return { strength: strengthFromPoints(points), fifaRank: rank, fifaPoints: points, confederation: conf, titles };
+}
 
 export type SeedPlayer = {
   id: string; // membership handle used to wire picks
@@ -93,11 +131,13 @@ export const NATIONS: SeedNation[] = [
     code: d[1], name: d[2], flag: d[3], group: d[4],
     // No results yet — records start at zero until real matches are played.
     W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
-    round: "Group", alive: false, champion: false, strength: d[13],
+    round: "Group", alive: false, champion: false,
+    ...factsFor(d[1]),
   })),
-  ...FREE_AGENTS.map(([code, name, flag, group, strength]): SeedNation => ({
+  ...FREE_AGENTS.map(([code, name, flag, group]): SeedNation => ({
     code, name, flag, group, W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
-    round: "Group", alive: false, champion: false, strength,
+    round: "Group", alive: false, champion: false,
+    ...factsFor(code),
   })),
 ];
 

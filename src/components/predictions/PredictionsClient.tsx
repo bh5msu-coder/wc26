@@ -7,7 +7,7 @@ import { simulate, type Bracket, type SimInput } from "@/lib/simulate";
 import type { Weights } from "@/lib/types";
 
 export type PredManager = { membershipId: string; name: string; color: string; isYou: boolean; baseTotal: number };
-export type PredNation = { code: string; name: string; flag: string; strength: number; ownerId: string | null };
+export type PredNation = { code: string; name: string; flag: string; strength: number; ownerId: string | null; fifaRank: number | null };
 
 const RUN_OPTIONS = [2000, 10000, 50000];
 
@@ -94,7 +94,9 @@ export function PredictionsClient({
               <Flag flag={nByCode.get(topCup.code)?.flag ?? "🏳️"} size={42} />
               <div className="flex-1">
                 <div className="text-[17px] font-extrabold">{nByCode.get(topCup.code)?.name}</div>
-                <div className="text-[12px]" style={{ color: "var(--dim)" }}>lifts the cup most often</div>
+                <div className="text-[12px]" style={{ color: "var(--dim)" }}>
+                  {nByCode.get(topCup.code)?.fifaRank ? `FIFA #${nByCode.get(topCup.code)?.fifaRank} · ` : ""}lifts the cup most often
+                </div>
               </div>
               <div className="display" style={{ fontSize: 34, color: "var(--gold)" }}>{pct(topCup.champProb)}</div>
             </div>
@@ -142,6 +144,7 @@ export function PredictionsClient({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[13px] font-bold">{nat?.name}</span>
+                        {nat?.fifaRank && <span className="text-[10px] font-semibold" style={{ color: "var(--faint)" }}>#{nat.fifaRank}</span>}
                         {owner && <span className="h-1.5 w-1.5 rounded-full" style={{ background: owner.color }} title={owner.name} />}
                       </div>
                       <div className="mt-1"><Bar pct={n.finalProb} color="var(--accent-2)" height={5} /></div>

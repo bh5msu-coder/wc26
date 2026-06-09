@@ -8,7 +8,7 @@ import { draftNation, setQueue, setAutoDraft, autoAdvanceDraft } from "@/server/
 
 export type DraftManager = { id: string; name: string; color: string; isYou: boolean };
 export type DraftPick = { pickNumber: number; round: number; ownerId: string; code: string; flag: string; name: string };
-export type DraftNation = { code: string; name: string; flag: string; group: string; owned: boolean; strength: number; points: number; ownerId: string | null };
+export type DraftNation = { code: string; name: string; flag: string; group: string; owned: boolean; strength: number; points: number; ownerId: string | null; fifaRank: number | null; confederation: string | null; titles: number };
 
 function rating(n: DraftNation) {
   return n.owned ? n.points * 3 + 40 : n.strength;
@@ -93,8 +93,11 @@ function NationRow({ n, owner }: { n: DraftNation; owner?: DraftManager }) {
         <div className="flex items-center gap-2">
           <span className="text-[13.5px] font-bold">{n.name}</span>
           <GroupChip group={n.group} fontSize={10} />
+          {n.titles > 0 && <span className="text-[10px] font-bold" style={{ color: "var(--gold)" }} title={`${n.titles} World Cup title${n.titles === 1 ? "" : "s"}`}>{"★".repeat(n.titles)}</span>}
         </div>
-        <div className="text-[11px]" style={{ color: "var(--faint)" }}>{owner ? owner.name : "Free agent"}</div>
+        <div className="text-[11px]" style={{ color: "var(--faint)" }}>
+          {[n.fifaRank ? `FIFA #${n.fifaRank}` : null, n.confederation, owner ? owner.name : "Free agent"].filter(Boolean).join(" · ")}
+        </div>
       </div>
       {n.owned ? <span className="display" style={{ fontSize: 20 }}>{n.points}</span>
         : <Chip tone="muted" style={{ fontSize: 10 }}>RTG {Math.round(n.strength)}</Chip>}

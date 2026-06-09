@@ -79,9 +79,14 @@ model Nation {
   round     String  @default("Group") // current standing / where eliminated
   alive     Boolean @default(false)
   champion  Boolean @default(false)
-  // attack/defense strength used by the Monte Carlo predictor
+  // attack/defense strength used by the Monte Carlo predictor (derived from FIFA points)
   strength  Float   @default(50)
-  picks     Pick[]
+  // World Cup facts
+  fifaRank      Int?
+  fifaPoints    Float?
+  confederation String? // UEFA, CONMEBOL, CONCACAF, CAF, AFC, OFC
+  titles        Int     @default(0) // World Cup titles won
+  picks         Pick[]
 }
 
 model Fixture {
