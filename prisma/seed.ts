@@ -14,7 +14,10 @@ async function main() {
       where: { code: n.code },
       // Only refresh static facts on reseed — preserve live W/L/GF/etc. so a
       // deploy never wipes results pulled by the cron.
-      update: { name: n.name, flag: n.flag, group: n.group, strength: n.strength },
+      update: {
+        name: n.name, flag: n.flag, group: n.group, strength: n.strength,
+        fifaRank: n.fifaRank, fifaPoints: n.fifaPoints, confederation: n.confederation, titles: n.titles,
+      },
       create: { ...n },
     });
   }

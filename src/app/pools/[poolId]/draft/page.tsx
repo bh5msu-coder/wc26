@@ -36,6 +36,7 @@ export default async function DraftPage({ params }: { params: { poolId: string }
   const nations: DraftNation[] = pool.nations.map((n) => ({
     code: n.code, name: n.name, flag: n.flag, group: n.group,
     owned: n.ownerId != null, strength: n.strength, points: n.points, ownerId: n.ownerId,
+    fifaRank: n.fifaRank, confederation: n.confederation, titles: n.titles,
   }));
 
   const youId = pool.managers.find((m) => m.isYou)?.membershipId ?? null;

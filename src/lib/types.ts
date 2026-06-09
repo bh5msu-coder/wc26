@@ -24,6 +24,10 @@ export type NationRecord = {
   alive: boolean;
   champion: boolean;
   strength: number;
+  fifaRank: number | null;
+  fifaPoints: number | null;
+  confederation: string | null;
+  titles: number;
 };
 
 export type Manager = {

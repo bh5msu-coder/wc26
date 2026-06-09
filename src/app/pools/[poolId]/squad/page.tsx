@@ -28,6 +28,13 @@ function NationLine({ n, weights }: { n: RosterNation; weights: PoolView["weight
           )}
         </div>
         <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--faint)" }}>
+          {[
+            n.fifaRank ? `FIFA #${n.fifaRank}` : null,
+            n.confederation,
+            n.titles ? `${n.titles}× champion` : null,
+          ].filter(Boolean).join(" · ") || "—"}
+        </div>
+        <div className="text-[11px]" style={{ color: "var(--faint)" }}>
           {bits.join(" · ") || "No points yet"}
         </div>
       </div>
