@@ -1,7 +1,7 @@
 import { requireUserId } from "@/lib/session";
 import { getPoolView } from "@/server/pools";
 import { notFound } from "next/navigation";
-import { Avatar, Card, Chip, Flag, SectionLabel } from "@/components/ui/primitives";
+import { Avatar, Card, Chip, Flag, GroupChip, SectionLabel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { pointParts } from "@/lib/scoring";
 import type { PoolView, RosterNation } from "@/lib/types";
@@ -20,6 +20,7 @@ function NationLine({ n, weights }: { n: RosterNation; weights: PoolView["weight
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="text-[14.5px] font-bold">{n.name}</span>
+          <GroupChip group={n.group} fontSize={10} />
           {n.alive ? (
             <Chip tone="pos" style={{ fontSize: 10, padding: "2px 7px" }}>ALIVE</Chip>
           ) : (
@@ -27,7 +28,7 @@ function NationLine({ n, weights }: { n: RosterNation; weights: PoolView["weight
           )}
         </div>
         <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--faint)" }}>
-          Group {n.group} · {bits.join(" · ") || "No points yet"}
+          {bits.join(" · ") || "No points yet"}
         </div>
       </div>
       <div className="display" style={{ fontSize: 24 }}>{n.points}</div>

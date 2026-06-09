@@ -1,4 +1,24 @@
 import * as React from "react";
+import { groupColor } from "@/lib/groups";
+
+/** Color-coded World Cup group pill, e.g. a tinted "A". */
+export function GroupChip({ group, fontSize = 11 }: { group: string; fontSize?: number }) {
+  const c = groupColor(group);
+  return (
+    <span
+      className="inline-flex items-center gap-1 whitespace-nowrap font-bold"
+      style={{ padding: "2px 7px", borderRadius: 999, background: `${c}22`, color: c, fontSize, lineHeight: 1, letterSpacing: "0.02em" }}
+    >
+      <span style={{ width: 6, height: 6, borderRadius: 999, background: c }} />
+      {(group ?? "").toUpperCase()}
+    </span>
+  );
+}
+
+/** Tiny color-coded group dot for compact rows. */
+export function GroupDot({ group, size = 8 }: { group: string; size?: number }) {
+  return <span title={`Group ${group}`} className="shrink-0" style={{ width: size, height: size, borderRadius: 999, background: groupColor(group), display: "inline-block" }} />;
+}
 
 /** Flag tile — emoji flag in a rounded chip with consistent sizing. */
 export function Flag({ flag, size = 30, radius }: { flag: string; size?: number; radius?: number }) {
