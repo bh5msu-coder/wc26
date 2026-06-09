@@ -3,6 +3,19 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUserId } from "@/lib/session";
+import { syncResults } from "@/lib/results";
+
+/** Commissioner-only: pull the latest results on demand (same engine as the daily cron). */
+export async function syncResultsNow(poolId: string) {
+  const userId = await requireUserId();
+  const me = await prisma.membership.findFirst({ where: { poolId, userId } });
+  if (!me || me.role !== "COMMISSIONER") throw new Error("Only the commissioner can sync results.");
+
+  const result = await syncResults();
+  revalidatePath(`/pools/${poolId}`, "layout");
+  if (!result.ok) throw new Error(result.message ?? "Sync failed.");
+  return result;
+}
 
 export type ScoringInput = {
   winPts: number; drawPts: number; goalPts: number; csPts: number; koPts: number; champPts: number;
