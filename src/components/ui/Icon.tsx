@@ -4,7 +4,7 @@ export type IconName =
   | "ball" | "shield" | "ko" | "trophy" | "bolt" | "flame" | "chevron"
   | "chevronDown" | "arrowUp" | "trend" | "plus" | "check" | "clock"
   | "users" | "grid" | "list" | "cards" | "calendar" | "info" | "close"
-  | "whistle" | "swap" | "dice" | "logout";
+  | "whistle" | "swap" | "dice" | "logout" | "undo";
 
 type Props = {
   name: IconName;
@@ -70,6 +70,8 @@ export function Icon({ name, size = 18, color = "currentColor", strokeWidth = 1.
       return (<svg {...common}><rect x="3.5" y="3.5" width="17" height="17" rx="4" /><circle cx="8.5" cy="8.5" r="1.2" fill={color} stroke="none" /><circle cx="15.5" cy="8.5" r="1.2" fill={color} stroke="none" /><circle cx="12" cy="12" r="1.2" fill={color} stroke="none" /><circle cx="8.5" cy="15.5" r="1.2" fill={color} stroke="none" /><circle cx="15.5" cy="15.5" r="1.2" fill={color} stroke="none" /></svg>);
     case "logout":
       return (<svg {...common}><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 12H21M18 9l3 3-3 3" /></svg>);
+    case "undo":
+      return (<svg {...common}><path d="M9 14L4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 015.5 5.5 5.5 5.5 0 01-5.5 5.5H7" /></svg>);
     default:
       return null;
   }

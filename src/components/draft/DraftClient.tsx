@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Avatar, Card, Chip, Flag, GroupChip, GroupDot, SectionLabel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
-import { draftNation, setQueue, setAutoDraft, autoAdvanceDraft } from "@/server/actions";
+import { draftNation, setQueue, setAutoDraft, autoAdvanceDraft, undoLastPick } from "@/server/actions";
 
 export type DraftManager = { id: string; name: string; color: string; isYou: boolean };
 export type DraftPick = { pickNumber: number; round: number; ownerId: string; code: string; flag: string; name: string };
@@ -262,10 +262,10 @@ function MockDraft({ managers, order, nations, rounds, onClose }: {
 
 // ── Live draft control ──
 function DraftControl({
-  managers, nations, order, poolId, youId, onClockId, picksMade, totalPicks,
+  managers, nations, picks, order, poolId, youId, isCommish, onClockId, picksMade, totalPicks,
 }: {
-  managers: DraftManager[]; nations: DraftNation[]; order: string[]; poolId: string;
-  youId: string | null; onClockId: string | null; picksMade: number; totalPicks: number;
+  managers: DraftManager[]; nations: DraftNation[]; picks: DraftPick[]; order: string[]; poolId: string;
+  youId: string | null; isCommish: boolean; onClockId: string | null; picksMade: number; totalPicks: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
@@ -278,6 +278,11 @@ function DraftControl({
     () => nations.filter((n) => !n.owned).sort((a, b) => b.strength - a.strength),
     [nations],
   );
+  const lastPick = React.useMemo(
+    () => picks.reduce<DraftPick | null>((best, p) => (best && best.pickNumber >= p.pickNumber ? best : p), null),
+    [picks],
+  );
+  const lastPickOwner = lastPick ? managers.find((m) => m.id === lastPick.ownerId) : undefined;
 
   // your next upcoming pick, and how many picks away it is
   const nextIdx = youId ? order.findIndex((id, i) => i >= picksMade && id === youId) : -1;
@@ -311,6 +316,18 @@ function DraftControl({
     });
   };
 
+  const undo = () => {
+    setError(null);
+    startTransition(async () => {
+      try {
+        await undoLastPick(poolId);
+        router.refresh();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not undo that pick.");
+      }
+    });
+  };
+
   const bannerBg = yourTurn ? "var(--accent)" : "var(--surface-2)";
   const bannerInk = yourTurn ? "var(--accent-ink)" : "var(--text)";
   const label = complete
@@ -335,6 +352,29 @@ function DraftControl({
       </div>
 
       {error && <div className="mt-3 rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold" style={{ background: "rgba(255,92,114,0.14)", color: "var(--neg)" }}>{error}</div>}
+
+      {isCommish && lastPick && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] px-3 py-2.5" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+          <div className="flex min-w-0 items-center gap-2 text-[12px]" style={{ color: "var(--faint)" }}>
+            <Chip tone="muted" style={{ fontSize: 9.5 }}>COMMISH</Chip>
+            <span className="truncate">
+              Last pick · #{lastPick.pickNumber}{" "}
+              <span className="flag" style={{ fontSize: 14 }}>{lastPick.flag}</span>{" "}
+              <span className="font-bold" style={{ color: "var(--dim)" }}>{lastPick.name}</span>
+              {lastPickOwner ? ` → ${lastPickOwner.name}` : ""}
+            </span>
+          </div>
+          <button
+            onClick={undo}
+            disabled={pending}
+            title="Undo the most recent pick and return the nation to the board"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-[12px] font-extrabold disabled:opacity-50"
+            style={{ background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--line)" }}
+          >
+            <Icon name="undo" size={13} color="var(--dim)" /> Undo
+          </button>
+        </div>
+      )}
 
       {yourTurn && (
         <div className="mt-4">
@@ -517,9 +557,9 @@ function QueuePanel({ poolId, queue, autoDraft, nations, youId }: {
   );
 }
 
-export function DraftClient({ managers, order, picks, nations, rounds, poolId, youId, onClockId, myQueue, myAutoDraft }: {
+export function DraftClient({ managers, order, picks, nations, rounds, poolId, youId, isCommish, onClockId, myQueue, myAutoDraft }: {
   managers: DraftManager[]; order: string[]; picks: DraftPick[]; nations: DraftNation[]; rounds: number;
-  poolId: string; youId: string | null; onClockId: string | null; myQueue: string[]; myAutoDraft: boolean;
+  poolId: string; youId: string | null; isCommish: boolean; onClockId: string | null; myQueue: string[]; myAutoDraft: boolean;
 }) {
   const [view, setView] = React.useState<"board" | "order" | "queue" | "big">("board");
   const [mock, setMock] = React.useState(false);
@@ -539,9 +579,11 @@ export function DraftClient({ managers, order, picks, nations, rounds, poolId, y
       <DraftControl
         managers={managers}
         nations={nations}
+        picks={picks}
         order={order}
         poolId={poolId}
         youId={youId}
+        isCommish={isCommish}
         onClockId={onClockId}
         picksMade={picks.length}
         totalPicks={order.length}

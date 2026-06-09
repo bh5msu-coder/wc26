@@ -97,6 +97,36 @@ export async function draftNation(poolId: string, nationCode: string) {
 }
 
 /**
+ * Commissioner-only: undo the most recent pick — the one with the highest
+ * pickNumber. Deleting it frees the nation (the `[poolId, nationCode]` /
+ * `[poolId, pickNumber]` unique slots become reusable) and rewinds the clock by
+ * one, since "on the clock" is derived purely from `picks.length`.
+ *
+ * The undone member's auto-draft is switched off in the same transaction: if it
+ * stayed on, the live page's auto-advance poll would instantly re-make the pick,
+ * so the undo would never "stick". Turning it off genuinely returns the slot.
+ */
+export async function undoLastPick(poolId: string) {
+  const userId = await requireUserId();
+  const me = await prisma.membership.findFirst({ where: { poolId, userId } });
+  if (!me || me.role !== "COMMISSIONER") throw new Error("Only the commissioner can undo a pick.");
+
+  const last = await prisma.pick.findFirst({
+    where: { poolId },
+    orderBy: { pickNumber: "desc" },
+  });
+  if (!last) throw new Error("There are no picks to undo.");
+
+  await prisma.$transaction([
+    prisma.pick.delete({ where: { id: last.id } }),
+    prisma.membership.update({ where: { id: last.membershipId }, data: { autoDraft: false } }),
+  ]);
+
+  revalidatePath(`/pools/${poolId}`, "layout");
+  return { pickNumber: last.pickNumber, nationCode: last.nationCode };
+}
+
+/**
  * Auto-pick for any on-the-clock member who has auto-draft on and a queued team
  * still available. Loops until the clock lands on a manual member, the queue is
  * exhausted, or the draft completes. Returns how many picks it made.

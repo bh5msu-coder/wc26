@@ -39,7 +39,9 @@ export default async function DraftPage({ params }: { params: { poolId: string }
     fifaRank: n.fifaRank, confederation: n.confederation, titles: n.titles,
   }));
 
-  const youId = pool.managers.find((m) => m.isYou)?.membershipId ?? null;
+  const you = pool.managers.find((m) => m.isYou);
+  const youId = you?.membershipId ?? null;
+  const isCommish = you?.role === "COMMISSIONER";
   const picksMade = picks.length;
   const onClockId = picksMade < order.length ? order[picksMade] : null;
 
@@ -52,6 +54,7 @@ export default async function DraftPage({ params }: { params: { poolId: string }
       rounds={pool.rounds}
       poolId={params.poolId}
       youId={youId}
+      isCommish={isCommish}
       onClockId={onClockId}
       myQueue={pool.myQueue}
       myAutoDraft={pool.myAutoDraft}
