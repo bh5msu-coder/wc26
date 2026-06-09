@@ -21,6 +21,21 @@ function Bar({ pct, color, height = 8 }: { pct: number; color: string; height?: 
 
 const pct = (x: number) => (x >= 0.1 ? `${Math.round(x * 100)}%` : x >= 0.01 ? `${(x * 100).toFixed(1)}%` : "<1%");
 
+function RangeBar({ worst, p10, exp, p90, best, lo, hi, color }: {
+  worst: number; p10: number; exp: number; p90: number; best: number; lo: number; hi: number; color: string;
+}) {
+  const span = Math.max(1, hi - lo);
+  const x = (v: number) => `${((v - lo) / span) * 100}%`;
+  const w = (a: number, b: number) => `${Math.max(2, ((b - a) / span) * 100)}%`;
+  return (
+    <div className="relative h-2.5 w-full rounded-full" style={{ background: "var(--chip-bg)" }}>
+      <div className="absolute top-1/2 h-px" style={{ left: x(worst), width: w(worst, best), background: "var(--line-strong)", transform: "translateY(-50%)" }} />
+      <div className="absolute top-0 h-full rounded-full" style={{ left: x(p10), width: w(p10, p90), background: color, opacity: 0.45 }} />
+      <div className="absolute top-1/2 h-3.5 w-[3px] rounded-full" style={{ left: x(exp), background: color, transform: "translate(-50%,-50%)" }} />
+    </div>
+  );
+}
+
 export function PredictionsClient({
   managers, nations, bracket, weights, stageLabel,
 }: {
@@ -53,6 +68,8 @@ export function PredictionsClient({
 
   const rankedManagers = [...result.managers].sort((a, b) => b.winProb - a.winProb);
   const maxWin = rankedManagers[0]?.winProb || 1;
+  const loScore = Math.min(...result.managers.map((m) => m.worst), 0);
+  const hiScore = Math.max(...result.managers.map((m) => m.best), 1);
   const favourite = rankedManagers[0];
   const champNations = [...result.nations].sort((a, b) => b.champProb - a.champProb);
   const topCup = champNations[0];
@@ -123,6 +140,9 @@ export function PredictionsClient({
                   <div className="mt-1.5 flex items-center justify-between text-[11.5px]" style={{ color: "var(--faint)" }}>
                     <span>Proj. <strong style={{ color: "var(--dim)" }}>{Math.round(r.expectedPoints)}</strong> pts (now {m.baseTotal})</span>
                     <span>Range {r.p10}–{r.p90} · <span style={{ color: "var(--pos)" }}>+{r.expectedAdded.toFixed(1)} exp</span></span>
+                  </div>
+                  <div className="mt-2" title={`Worst ${r.worst} · likely ${r.p10}–${r.p90} · best ${r.best}`}>
+                    <RangeBar worst={r.worst} p10={r.p10} exp={r.expectedPoints} p90={r.p90} best={r.best} lo={loScore} hi={hiScore} color={m.isYou ? "var(--accent)" : "var(--accent-2)"} />
                   </div>
                 </div>
               );
