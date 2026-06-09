@@ -106,6 +106,83 @@ function MatchCard({ fx, nationByCode }: { fx: Fx; nationByCode: Map<string, Ros
   );
 }
 
+// ── Bracket geometry + topology model ────────────────────────────────────
+// Single-elimination wiring: matches 2k and 2k+1 of a round feed match k of
+// the next round. Fixtures arrive ordered by `sort` — the official schedule
+// lays knockout matches out in bracket-adjacent order — so this deterministic
+// pairing reconstructs the connector topology without extra stored data.
+// (If real seeding/feeds-into data is added to Fixture later, swap the pairing
+// here; the geometry + SVG rendering stay the same.)
+const CARD_W = 176;
+const CARD_H = 84;
+const COL_GAP = 52; // horizontal gutter the connectors live in
+const ROW_GAP = 16; // vertical gap between first-round slots
+const COL_W = CARD_W + COL_GAP;
+
+function BracketCanvas({ rounds, nationByCode }: { rounds: { key: string; matches: Fx[] }[]; nationByCode: Map<string, RosterNation> }) {
+  // y-center of every match slot, computed per round so each match sits
+  // exactly between the two matches that feed it.
+  const centers: number[][] = [];
+  rounds.forEach((rd, r) => {
+    centers[r] = rd.matches.map((_, j) => {
+      if (r === 0) return j * (CARD_H + ROW_GAP) + CARD_H / 2;
+      const a = centers[r - 1][2 * j];
+      const b = centers[r - 1][2 * j + 1];
+      if (a == null) return j * (CARD_H + ROW_GAP) + CARD_H / 2;
+      return b == null ? a : (a + b) / 2;
+    });
+  });
+
+  const firstCount = rounds[0]?.matches.length ?? 1;
+  const bodyH = Math.max(CARD_H, firstCount * (CARD_H + ROW_GAP) - ROW_GAP);
+  const totalW = rounds.length * COL_W - COL_GAP;
+
+  // Connector elbows: from each feeder's right edge → mid-gutter → next
+  // match's center height → next match's left edge. Lines whose feeder match
+  // is decided light up in accent to trace who advanced.
+  const paths: { d: string; live: boolean }[] = [];
+  for (let r = 1; r < rounds.length; r++) {
+    const nextLeft = r * COL_W;
+    const feedRight = (r - 1) * COL_W + CARD_W;
+    const midX = feedRight + COL_GAP / 2;
+    rounds[r].matches.forEach((_, j) => {
+      const cn = centers[r][j];
+      [2 * j, 2 * j + 1].forEach((fi) => {
+        const cf = centers[r - 1]?.[fi];
+        if (cf == null) return;
+        const live = rounds[r - 1].matches[fi]?.status === "final";
+        paths.push({ d: `M ${feedRight} ${cf} H ${midX} V ${cn} H ${nextLeft}`, live });
+      });
+    });
+  }
+
+  return (
+    <div style={{ width: totalW, minWidth: totalW }}>
+      <div className="flex">
+        {rounds.map((rd) => (
+          <div key={rd.key} className="text-[11px] font-extrabold uppercase tracking-wide" style={{ width: COL_W, color: "var(--faint)" }}>
+            {ROUND_LABEL[rd.key]}
+          </div>
+        ))}
+      </div>
+      <div className="relative mt-2" style={{ width: totalW, height: bodyH }}>
+        <svg width={totalW} height={bodyH} className="absolute inset-0" style={{ pointerEvents: "none" }} aria-hidden>
+          {paths.map((p, i) => (
+            <path key={i} d={p.d} fill="none" stroke={p.live ? "var(--accent)" : "var(--line-strong)"} strokeWidth={p.live ? 2 : 1.5} strokeLinejoin="round" opacity={p.live ? 0.85 : 0.5} />
+          ))}
+        </svg>
+        {rounds.map((rd, r) =>
+          rd.matches.map((fx, j) => (
+            <div key={fx.id} className="absolute flex items-center" style={{ left: r * COL_W, top: centers[r][j] - CARD_H / 2, width: CARD_W, height: CARD_H }}>
+              <MatchCard fx={fx} nationByCode={nationByCode} />
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default async function BracketPage({ params }: { params: { poolId: string } }) {
   const userId = await requireUserId();
   const pool = await getPoolView(params.poolId, userId);
@@ -169,18 +246,10 @@ export default async function BracketPage({ params }: { params: { poolId: string
               </div>
             </Card>
           )}
-          <div className="flex items-stretch gap-0" style={{ minWidth: "min-content" }}>
-            {liveRounds.map((r, ci) => (
-              <div
-                key={r}
-                className="flex flex-col justify-around gap-2 px-3"
-                style={{ borderLeft: ci > 0 ? "1px dashed var(--line)" : "none", minWidth: 168 }}
-              >
-                <div className="text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "var(--faint)" }}>{ROUND_LABEL[r]}</div>
-                {(byRound.get(r) ?? []).map((fx) => <MatchCard key={fx.id} fx={fx} nationByCode={nationByCode} />)}
-              </div>
-            ))}
-          </div>
+          <BracketCanvas
+            rounds={liveRounds.map((r) => ({ key: r, matches: byRound.get(r) ?? [] }))}
+            nationByCode={nationByCode}
+          />
 
           {third.length > 0 && (
             <div className="mt-6 max-w-[220px]">

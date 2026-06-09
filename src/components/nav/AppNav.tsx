@@ -101,28 +101,32 @@ export function AppNav({
           <Avatar name={you.name} color={you.color} size={32} />
         </header>
 
-        <main className="mx-auto w-full max-w-app flex-1 px-4 pb-28 pt-5 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10">
+        <main className="mx-auto w-full max-w-app flex-1 px-4 pb-36 pt-5 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10">
           {children}
         </main>
 
-        {/* Mobile bottom tab bar */}
+        {/* Mobile bottom tab bar — two rows of four so it isn't cramped */}
         <nav
-          className="fixed inset-x-0 bottom-0 z-30 flex items-start justify-around border-t px-1.5 pb-6 pt-2 backdrop-blur md:hidden"
+          className="fixed inset-x-0 bottom-0 z-30 flex flex-col border-t pb-5 pt-1.5 backdrop-blur md:hidden"
           style={{ borderColor: "var(--line)", background: "rgba(10,14,21,0.86)" }}
         >
-          {ITEMS.map((it) => {
-            const active = isActive(it.seg);
-            return (
-              <Link
-                key={it.seg}
-                href={it.seg ? `${base}/${it.seg}` : base}
-                className="flex flex-1 flex-col items-center gap-1 py-0.5"
-              >
-                <Icon name={it.icon} size={21} color={active ? "var(--accent)" : "var(--faint)"} strokeWidth={active ? 2.1 : 1.7} />
-                <span className="text-[9.5px] font-bold" style={{ color: active ? "var(--text)" : "var(--faint)" }}>{it.label}</span>
-              </Link>
-            );
-          })}
+          {[ITEMS.slice(0, 4), ITEMS.slice(4)].map((row, ri) => (
+            <div key={ri} className="flex items-start justify-around px-1.5 py-1.5">
+              {row.map((it) => {
+                const active = isActive(it.seg);
+                return (
+                  <Link
+                    key={it.seg}
+                    href={it.seg ? `${base}/${it.seg}` : base}
+                    className="flex flex-1 flex-col items-center gap-1 py-0.5"
+                  >
+                    <Icon name={it.icon} size={22} color={active ? "var(--accent)" : "var(--faint)"} strokeWidth={active ? 2.1 : 1.7} />
+                    <span className="text-[11px] font-bold" style={{ color: active ? "var(--text)" : "var(--faint)" }}>{it.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
     </div>
