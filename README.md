@@ -108,13 +108,39 @@ you're in.
 
 See **[DEPLOY.md](./DEPLOY.md)** for one-click Vercel + Postgres setup.
 
+## Activating the results sync
+
+Standings update from a daily pull of match results (football-data.org). It stays
+dormant until you configure it — **set these in Vercel → Settings → Environment
+Variables, not in `.env.example`** (that file is committed and is never read by the
+deployed app):
+
+| Var | Value |
+|---|---|
+| `RESULTS_API_TOKEN` | your football-data.org API key (required) |
+| `CRON_SECRET` | any long random string — Vercel sends it to the cron route so only it can trigger a sync |
+| `RESULTS_API_URL` | *(optional)* default `https://api.football-data.org/v4` |
+| `RESULTS_COMPETITION` | *(optional)* default `WC` |
+
+Checklist:
+1. Get a free key at <https://www.football-data.org>.
+2. Add `RESULTS_API_TOKEN` + `CRON_SECRET` to **both** Vercel projects (`wc26`, `wc26-app`).
+3. **Redeploy.**
+4. The cron (`/api/cron/results`) runs daily at 06:00 UTC. Commissioners can also pull
+   on demand with the **Sync results** button on the pool dashboard.
+5. Teams are matched to nations in `src/lib/team-codes.ts` — add to `TEAM_CODE_OVERRIDES`
+   if any of football-data's codes don't line up with the catalog.
+
+> Secrets only ever belong in Vercel env vars or a gitignored `.env.local` — never in
+> `.env.example`. If a real key lands in git, rotate it.
+
 ---
 
 ## Notes & next steps
-- Tournament facts (records, fixtures, strengths) are seeded as global data. Wire these to a
-  real results feed to go live; the scoring + simulator read straight from them.
-- The mock-draft is a client-side simulator. A live multiplayer draft would add a
-  `DraftRoom` model + websockets / server actions with optimistic updates.
+- Tournament facts (records, fixtures, strengths) are seeded as global data and then kept
+  live by the results sync above; the scoring + simulator read straight from them.
+- Drafting is live and persistent (turn order + queue + auto-draft). The **Mock draft** is a
+  separate client-side practice simulator. A real-time draft room would add websockets.
 - The seed creates the demo accounts and the tournament catalog only — no demo pool.
   Sign in and create your own pool; pools store their own `rounds` and start empty so you
   can wire up your own draft flow.
