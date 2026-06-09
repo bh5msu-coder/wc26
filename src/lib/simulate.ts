@@ -12,8 +12,19 @@ import type { Weights } from "./types";
  * The match model: two independent Poisson goal counts whose rates depend on the
  * strength gap, with penalties (strength-weighted coin flip) breaking ties so a
  * knockout always produces a winner.
+ *
+ * The module is organised in three layers with a strict one-way dependency
+ * (orchestration → domain → primitives), and every layer below `simulate` is a
+ * pure, exported function. That means each behaviour — the RNG, the goal
+ * sampler, a single match, the scoring rule, one full bracket — can be unit
+ * tested in isolation without running ten thousand tournaments:
+ *
+ *   1. Math primitives — makeRng, poisson, sigmoid, percentileOfSorted
+ *   2. Domain model    — simulateMatch, knockoutSidePoints, simulateBracket
+ *   3. Orchestration   — simulate (folds many bracket runs into statistics)
  */
 
+// ── public types ────────────────────────────────────────────────────────────
 export type SimNation = {
   code: string;
   strength: number;
@@ -68,8 +79,32 @@ export type SimResult = {
   nations: NationResult[];
 };
 
-// ── tiny deterministic PRNG (mulberry32) for reproducible runs ──
-function makeRng(seed: number): () => number {
+export type MatchOutcome = { winner: string; loser: string; gh: number; ga: number };
+
+/** One simulated tournament: who advanced, and the points each owner accrued. */
+export type BracketRun = {
+  addedByOwner: Record<string, number>; // ownerId → points earned this run
+  semifinalists: string[]; // nation codes that reached the semi-finals (QF winners)
+  finalists: string[]; // nation codes that reached the final (SF winners)
+  champion: string; // nation code that lifted the cup
+};
+
+// ── defaults & match-engine constants ───────────────────────────────────────
+export const DEFAULTS = { runs: 10_000, strengthScale: 40 } as const;
+
+/** Match-engine tunables, named so the model reads as documentation. */
+const MATCH = {
+  baseGoals: 1.35, // expected goals per side in an evenly-matched tie
+  shootoutSharpness: 0.7, // penalty-flip steepness, relative to strengthScale
+  fallbackStrength: 50, // assumed strength when a nation code is unknown
+} as const;
+
+/* ===========================================================================
+ * Layer 1 — pure math primitives
+ * ======================================================================== */
+
+/** Deterministic mulberry32 PRNG → reproducible runs from a single seed. */
+export function makeRng(seed: number): () => number {
   let a = seed >>> 0;
   return function () {
     a |= 0;
@@ -80,8 +115,8 @@ function makeRng(seed: number): () => number {
   };
 }
 
-// Knuth Poisson sampler
-function poisson(lambda: number, rnd: () => number): number {
+/** Knuth's algorithm for sampling a Poisson(lambda) goal count. */
+export function poisson(lambda: number, rnd: () => number): number {
   const L = Math.exp(-lambda);
   let k = 0;
   let p = 1;
@@ -92,165 +127,199 @@ function poisson(lambda: number, rnd: () => number): number {
   return k - 1;
 }
 
-const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
+export const sigmoid = (x: number): number => 1 / (1 + Math.exp(-x));
 
-type MatchOutcome = { winner: string; loser: string; gh: number; ga: number };
+/**
+ * Nearest-rank percentile of an array that is ALREADY sorted ascending.
+ * The caller sorts once and reuses the sorted array for several percentiles
+ * (plus best/worst as the last/first element) — avoiding repeated sorts.
+ */
+export function percentileOfSorted(sortedAsc: number[], p: number): number {
+  const n = sortedAsc.length;
+  if (n === 0) return 0;
+  const idx = Math.min(n - 1, Math.max(0, Math.round((p / 100) * (n - 1))));
+  return sortedAsc[idx];
+}
 
-function simulateMatch(
+/* ===========================================================================
+ * Layer 2 — domain model
+ * ======================================================================== */
+
+/** Simulate one knockout match. Penalties (a strength-weighted flip) break ties. */
+export function simulateMatch(
   homeCode: string,
   awayCode: string,
   nations: Record<string, SimNation>,
   scale: number,
   rnd: () => number,
 ): MatchOutcome {
-  const sh = nations[homeCode]?.strength ?? 50;
-  const sa = nations[awayCode]?.strength ?? 50;
+  const sh = nations[homeCode]?.strength ?? MATCH.fallbackStrength;
+  const sa = nations[awayCode]?.strength ?? MATCH.fallbackStrength;
   const diff = sh - sa;
-  const base = 1.35;
-  const lambdaH = base * Math.exp(diff / scale / 2);
-  const lambdaA = base * Math.exp(-diff / scale / 2);
-  let gh = poisson(lambdaH, rnd);
-  let ga = poisson(lambdaA, rnd);
+  const lambdaH = MATCH.baseGoals * Math.exp(diff / scale / 2);
+  const lambdaA = MATCH.baseGoals * Math.exp(-diff / scale / 2);
+  const gh = poisson(lambdaH, rnd);
+  const ga = poisson(lambdaA, rnd);
 
   if (gh === ga) {
-    // penalties — strength-weighted coin flip; scoreline stays level
-    const pHome = sigmoid(diff / (scale * 0.7));
-    if (rnd() < pHome) return { winner: homeCode, loser: awayCode, gh, ga };
-    return { winner: awayCode, loser: homeCode, gh, ga };
+    // shootout — strength-weighted coin flip; the scoreline stays level
+    const pHome = sigmoid(diff / (scale * MATCH.shootoutSharpness));
+    return rnd() < pHome
+      ? { winner: homeCode, loser: awayCode, gh, ga }
+      : { winner: awayCode, loser: homeCode, gh, ga };
   }
   return gh > ga
     ? { winner: homeCode, loser: awayCode, gh, ga }
     : { winner: awayCode, loser: homeCode, gh, ga };
 }
 
+/** Pure scoring rule: points one nation earns for a single knockout match. */
+export function knockoutSidePoints(
+  won: boolean,
+  goalsFor: number,
+  goalsConceded: number,
+  w: Weights,
+): number {
+  let pts = 0;
+  if (won) pts += w.win + w.ko; // match win + knockout bonus
+  pts += w.goal * goalsFor; // goals scored
+  if (goalsConceded === 0) pts += w.cs; // clean sheet (shutout)
+  return pts;
+}
+
+/**
+ * Play one full bracket (QF → SF → Final) and report who advanced plus the
+ * points each owner accrued. Pure given `rnd`, so a seeded RNG makes a single
+ * run fully assertable in a test.
+ */
+export function simulateBracket(
+  bracket: Bracket,
+  nations: Record<string, SimNation>,
+  w: Weights,
+  scale: number,
+  rnd: () => number,
+): BracketRun {
+  const addedByOwner: Record<string, number> = {};
+  const credit = (code: string, pts: number) => {
+    const owner = nations[code]?.ownerId;
+    if (owner) addedByOwner[owner] = (addedByOwner[owner] ?? 0) + pts;
+  };
+  const score = (o: MatchOutcome) => {
+    const tie = o.gh === o.ga; // settled on penalties — scoreline level
+    const wGoals = tie ? o.gh : Math.max(o.gh, o.ga);
+    const lGoals = tie ? o.ga : Math.min(o.gh, o.ga);
+    credit(o.winner, knockoutSidePoints(true, wGoals, lGoals, w));
+    credit(o.loser, knockoutSidePoints(false, lGoals, wGoals, w));
+  };
+
+  const semifinalists = bracket.quarterfinals.map((m) => {
+    const o = simulateMatch(m.home, m.away, nations, scale, rnd);
+    score(o);
+    return o.winner;
+  });
+
+  const finalists = bracket.semifinals.map((s) => {
+    const o = simulateMatch(semifinalists[s.fromHome], semifinalists[s.fromAway], nations, scale, rnd);
+    score(o);
+    return o.winner;
+  });
+
+  const f = bracket.final;
+  const fo = simulateMatch(finalists[f.fromHome], finalists[f.fromAway], nations, scale, rnd);
+  score(fo);
+  credit(fo.winner, w.champ); // champion bonus
+
+  return { addedByOwner, semifinalists, finalists, champion: fo.winner };
+}
+
+/* ===========================================================================
+ * Layer 3 — orchestration
+ * ======================================================================== */
+
 export function simulate(input: SimInput): SimResult {
-  const runs = input.runs ?? 10000;
-  const scale = input.strengthScale ?? 40;
-  const w = input.weights;
+  const runs = input.runs ?? DEFAULTS.runs;
+  const scale = input.strengthScale ?? DEFAULTS.strengthScale;
+  const { weights: w, nations, bracket } = input;
   const rnd = input.seed != null ? makeRng(input.seed) : Math.random;
 
   const managerIds = input.managers.map((m) => m.membershipId);
   const base: Record<string, number> = {};
-  input.managers.forEach((m) => (base[m.membershipId] = m.baseTotal));
+  for (const m of input.managers) base[m.membershipId] = m.baseTotal;
 
-  // accumulators
-  const added: Record<string, number> = {}; // sum of added points
-  const wins: Record<string, number> = {};
-  const podium: Record<string, number> = {};
-  const finals: Record<string, number[]> = {}; // final totals per run, for percentiles
-  managerIds.forEach((id) => {
-    added[id] = 0;
-    wins[id] = 0;
-    podium[id] = 0;
-    finals[id] = [];
-  });
+  // per-manager accumulators
+  const addedTotal: Record<string, number> = {}; // Σ points added across runs
+  const winCount: Record<string, number> = {}; // Σ first-place finishes (ties split)
+  const podiumCount: Record<string, number> = {}; // Σ top-3 finishes
+  const finalTotals: Record<string, number[]> = {}; // every run's total → percentiles
+  for (const id of managerIds) {
+    addedTotal[id] = 0;
+    winCount[id] = 0;
+    podiumCount[id] = 0;
+    finalTotals[id] = [];
+  }
 
-  const sfCount: Record<string, number> = {};
-  const finalCount: Record<string, number> = {};
-  const champCount: Record<string, number> = {};
-  Object.keys(input.nations).forEach((c) => {
-    sfCount[c] = 0;
-    finalCount[c] = 0;
-    champCount[c] = 0;
-  });
-
-  // points a nation earns for winning / losing one knockout match in a sim
-  function scoreMatch(o: MatchOutcome, runAdd: Record<string, number>) {
-    const add = (code: string, gf: number, conceded: number, won: boolean) => {
-      const owner = input.nations[code]?.ownerId;
-      if (!owner) return;
-      let pts = 0;
-      if (won) pts += w.win + w.ko; // match win + knockout bonus
-      pts += w.goal * gf; // goals scored
-      if (conceded === 0) pts += w.cs; // clean sheet (shutout)
-      runAdd[owner] = (runAdd[owner] ?? 0) + pts;
-    };
-    const tie = o.gh === o.ga; // settled on penalties — scoreline stays level
-    const wGoals = tie ? o.gh : Math.max(o.gh, o.ga);
-    const lGoals = tie ? o.ga : Math.min(o.gh, o.ga);
-    add(o.winner, wGoals, lGoals, true);
-    add(o.loser, lGoals, wGoals, false);
+  // per-nation knockout-depth counters
+  const reachedSf: Record<string, number> = {};
+  const reachedFinal: Record<string, number> = {};
+  const champ: Record<string, number> = {};
+  for (const c of Object.keys(nations)) {
+    reachedSf[c] = 0;
+    reachedFinal[c] = 0;
+    champ[c] = 0;
   }
 
   for (let r = 0; r < runs; r++) {
-    const runAdd: Record<string, number> = {};
+    const run = simulateBracket(bracket, nations, w, scale, rnd);
 
-    // Quarter-finals
-    const qfWinners: string[] = [];
-    for (const m of input.bracket.quarterfinals) {
-      const o = simulateMatch(m.home, m.away, input.nations, scale, rnd);
-      scoreMatch(o, runAdd);
-      qfWinners.push(o.winner);
-    }
-    qfWinners.forEach((c) => (sfCount[c] += 1));
+    for (const c of run.semifinalists) reachedSf[c] += 1;
+    for (const c of run.finalists) reachedFinal[c] += 1;
+    champ[run.champion] += 1;
 
-    // Semi-finals
-    const sfWinners: string[] = [];
-    for (const s of input.bracket.semifinals) {
-      const home = qfWinners[s.fromHome];
-      const away = qfWinners[s.fromAway];
-      const o = simulateMatch(home, away, input.nations, scale, rnd);
-      scoreMatch(o, runAdd);
-      sfWinners.push(o.winner);
-    }
-    sfWinners.forEach((c) => (finalCount[c] += 1));
-
-    // Final
-    const f = input.bracket.final;
-    const fo = simulateMatch(sfWinners[f.fromHome], sfWinners[f.fromAway], input.nations, scale, rnd);
-    scoreMatch(fo, runAdd);
-    // champion bonus
-    const champOwner = input.nations[fo.winner]?.ownerId;
-    if (champOwner) runAdd[champOwner] = (runAdd[champOwner] ?? 0) + w.champ;
-    champCount[fo.winner] += 1;
-
-    // tally final totals for this run
+    // fold this run's totals into the manager statistics
     let bestTotal = -Infinity;
     const totals = managerIds.map((id) => {
-      const t = base[id] + (runAdd[id] ?? 0);
-      added[id] += runAdd[id] ?? 0;
-      finals[id].push(t);
-      if (t > bestTotal) bestTotal = t;
-      return { id, t };
+      const add = run.addedByOwner[id] ?? 0;
+      addedTotal[id] += add;
+      const total = base[id] + add;
+      finalTotals[id].push(total);
+      if (total > bestTotal) bestTotal = total;
+      return { id, total };
     });
-    // winners (ties split)
-    const top = totals.filter((x) => x.t === bestTotal);
-    top.forEach((x) => (wins[x.id] += 1 / top.length));
-    // podium (top 3 by total)
-    const ranked = [...totals].sort((a, b) => b.t - a.t);
-    const cut = ranked[Math.min(2, ranked.length - 1)].t;
-    ranked.filter((x) => x.t >= cut).forEach((x) => (podium[x.id] += 1));
+
+    // pool winner(s): a tie for first splits the win evenly
+    const leaders = totals.filter((t) => t.total === bestTotal);
+    for (const t of leaders) winCount[t.id] += 1 / leaders.length;
+
+    // podium: everyone at or above the 3rd-best total this run
+    const ranked = [...totals].sort((a, b) => b.total - a.total);
+    const podiumCut = ranked[Math.min(2, ranked.length - 1)].total;
+    for (const t of ranked) if (t.total >= podiumCut) podiumCount[t.id] += 1;
   }
 
-  const percentile = (arr: number[], p: number) => {
-    const s = [...arr].sort((a, b) => a - b);
-    const idx = Math.min(s.length - 1, Math.max(0, Math.round((p / 100) * (s.length - 1))));
-    return s[idx];
-  };
-
   const managers: ManagerResult[] = input.managers.map((m) => {
-    const arr = finals[m.membershipId];
+    const id = m.membershipId;
+    const sorted = finalTotals[id].sort((a, b) => a - b); // sort ONCE, reuse below
     return {
-      membershipId: m.membershipId,
-      winProb: wins[m.membershipId] / runs,
-      podiumProb: podium[m.membershipId] / runs,
-      expectedPoints: base[m.membershipId] + added[m.membershipId] / runs,
-      expectedAdded: added[m.membershipId] / runs,
-      p10: percentile(arr, 10),
-      p90: percentile(arr, 90),
-      best: Math.max(...arr),
-      worst: Math.min(...arr),
+      membershipId: id,
+      winProb: winCount[id] / runs,
+      podiumProb: podiumCount[id] / runs,
+      expectedPoints: base[id] + addedTotal[id] / runs,
+      expectedAdded: addedTotal[id] / runs,
+      p10: percentileOfSorted(sorted, 10),
+      p90: percentileOfSorted(sorted, 90),
+      best: sorted[sorted.length - 1] ?? base[id],
+      worst: sorted[0] ?? base[id],
     };
   });
 
-  const nations: NationResult[] = Object.keys(input.nations)
-    .filter((c) => sfCount[c] > 0 || finalCount[c] > 0 || champCount[c] > 0)
+  const nationResults: NationResult[] = Object.keys(nations)
+    .filter((c) => reachedSf[c] > 0 || reachedFinal[c] > 0 || champ[c] > 0)
     .map((c) => ({
       code: c,
-      sfProb: sfCount[c] / runs,
-      finalProb: finalCount[c] / runs,
-      champProb: champCount[c] / runs,
+      sfProb: reachedSf[c] / runs,
+      finalProb: reachedFinal[c] / runs,
+      champProb: champ[c] / runs,
     }));
 
-  return { runs, managers, nations };
+  return { runs, managers, nations: nationResults };
 }
