@@ -82,9 +82,14 @@ export async function draftNation(poolId: string, nationCode: string) {
 
   const round = pool.picks.filter((p) => p.membershipId === me.id).length + 1;
 
-  await prisma.pick.create({
-    data: { poolId, membershipId: me.id, nationCode: code, round, pickNumber: picksMade + 1 },
-  });
+  try {
+    await prisma.pick.create({
+      data: { poolId, membershipId: me.id, nationCode: code, round, pickNumber: picksMade + 1 },
+    });
+  } catch {
+    // unique conflict — a concurrent pick (or double-click) already took this slot/nation
+    throw new Error("That pick didn't go through — the draft just moved on. Refresh and try again.");
+  }
 
   // a manual pick may hand the clock to auto-draft members — cascade through them
   await runAutoPicks(poolId);
