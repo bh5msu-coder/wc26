@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Avatar, Card, Chip, Flag, SectionLabel } from "@/components/ui/primitives";
+import { Avatar, Card, Chip, Flag, GroupChip, GroupDot, SectionLabel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import { draftNation, setQueue, setAutoDraft, autoAdvanceDraft } from "@/server/actions";
 
@@ -90,8 +90,11 @@ function NationRow({ n, owner }: { n: DraftNation; owner?: DraftManager }) {
     <div className="flex items-center gap-3 border-b py-2.5 last:border-b-0" style={{ borderColor: "var(--line)" }}>
       <Flag flag={n.flag} size={34} />
       <div className="min-w-0 flex-1">
-        <div className="text-[13.5px] font-bold">{n.name}</div>
-        <div className="text-[11px]" style={{ color: "var(--faint)" }}>Group {n.group}{owner ? ` · ${owner.name}` : " · Free agent"}</div>
+        <div className="flex items-center gap-2">
+          <span className="text-[13.5px] font-bold">{n.name}</span>
+          <GroupChip group={n.group} fontSize={10} />
+        </div>
+        <div className="text-[11px]" style={{ color: "var(--faint)" }}>{owner ? owner.name : "Free agent"}</div>
       </div>
       {n.owned ? <span className="display" style={{ fontSize: 20 }}>{n.points}</span>
         : <Chip tone="muted" style={{ fontSize: 10 }}>RTG {Math.round(n.strength)}</Chip>}
@@ -342,6 +345,7 @@ function DraftControl({
                 className="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 text-left disabled:opacity-50"
                 style={{ background: "var(--surface)", border: "1px solid var(--line)" }}
               >
+                <GroupDot group={n.group} />
                 <span className="flag" style={{ fontSize: 20 }}>{n.flag}</span>
                 <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">{n.name}</span>
                 <Chip tone="muted" style={{ fontSize: 10 }}>{Math.round(n.strength)}</Chip>
@@ -476,6 +480,7 @@ function QueuePanel({ poolId, queue, autoDraft, nations, youId }: {
             return (
               <div key={code} className="flex items-center gap-3 border-b py-2.5 last:border-b-0" style={{ borderColor: "var(--line)", opacity: taken ? 0.45 : 1 }}>
                 <span className="w-5 text-center text-[12px] font-bold" style={{ color: "var(--faint)" }}>{i + 1}</span>
+                <GroupDot group={n?.group ?? ""} />
                 <span className="flag" style={{ fontSize: 20 }}>{n?.flag ?? "🏳️"}</span>
                 <div className="min-w-0 flex-1">
                   <div className="text-[13px] font-bold">{n?.name ?? code}</div>
@@ -497,6 +502,7 @@ function QueuePanel({ poolId, queue, autoDraft, nations, youId }: {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {available.map((n) => (
             <button key={n.code} onClick={() => add(n.code)} disabled={pending} className="flex items-center gap-2.5 rounded-[12px] px-2.5 py-2.5 text-left disabled:opacity-50" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+              <GroupDot group={n.group} />
               <span className="flag" style={{ fontSize: 18 }}>{n.flag}</span>
               <span className="min-w-0 flex-1 truncate text-[12px] font-bold">{n.name}</span>
               <Icon name="plus" size={13} color="var(--accent)" />

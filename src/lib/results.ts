@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { resolveNationCode, normalizeName } from "@/lib/team-codes";
 
 /**
  * Pulls World Cup results from football-data.org (v4) and updates each nation's
@@ -9,8 +10,8 @@ import { prisma } from "@/lib/db";
  *   RESULTS_API_URL     — base URL (default https://api.football-data.org/v4)
  *   RESULTS_COMPETITION — competition code (default "WC")
  *
- * Teams are matched to our nation catalog by TLA (e.g. ARG, ESP). Teams not in
- * the catalog are ignored.
+ * Teams are matched to our nation catalog via team-codes.ts (TLA overrides,
+ * then code, then name aliases / DB name). Teams not in the catalog are ignored.
  */
 
 type FdScore = { winner?: string | null; fullTime?: { home: number | null; away: number | null } };
@@ -57,6 +58,14 @@ export async function syncResults(): Promise<SyncResult> {
   }
 
   const matches = data.matches ?? [];
+
+  // Build the code/name lookup from the live catalog, then resolve every team
+  // through the explicit mapping table (team-codes.ts).
+  const allNations = await prisma.nation.findMany({ select: { code: true, name: true } });
+  const codeSet = new Set(allNations.map((n) => n.code));
+  const nameToCode = new Map(allNations.map((n) => [normalizeName(n.name), n.code] as const));
+  const resolve = (t: FdTeam) => resolveNationCode(t, codeSet, nameToCode);
+
   const acc = new Map<string, Acc>();
   const get = (code: string): Acc => {
     let a = acc.get(code);
@@ -66,12 +75,11 @@ export async function syncResults(): Promise<SyncResult> {
     }
     return a;
   };
-  const tla = (t: FdTeam) => (t.tla ?? "").toUpperCase().trim();
 
   for (const m of matches) {
     const st = STAGE[m.stage];
-    const home = tla(m.homeTeam);
-    const away = tla(m.awayTeam);
+    const home = resolve(m.homeTeam);
+    const away = resolve(m.awayTeam);
     if (!home || !away) continue;
 
     // furthest stage reached
@@ -116,12 +124,9 @@ export async function syncResults(): Promise<SyncResult> {
   }
 
   // update matching nations
-  const codes = [...acc.keys()];
-  const existing = await prisma.nation.findMany({ where: { code: { in: codes } }, select: { code: true } });
-  const existSet = new Set(existing.map((n) => n.code));
   let updated = 0;
   for (const [code, a] of acc) {
-    if (!existSet.has(code)) continue;
+    if (!codeSet.has(code)) continue;
     await prisma.nation.update({
       where: { code },
       data: {
@@ -145,8 +150,8 @@ export async function syncResults(): Promise<SyncResult> {
         id: String(m.id),
         stage: st?.label ?? m.stage ?? "Match",
         status,
-        homeCode: tla(m.homeTeam) || "TBD",
-        awayCode: tla(m.awayTeam) || "TBD",
+        homeCode: resolve(m.homeTeam) || "TBD",
+        awayCode: resolve(m.awayTeam) || "TBD",
         hs: m.score?.fullTime?.home ?? null,
         as: m.score?.fullTime?.away ?? null,
         whenLabel: when,
