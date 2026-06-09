@@ -11,7 +11,9 @@ const ITEMS: NavItem[] = [
   { seg: "", label: "Table", icon: "trophy" },
   { seg: "draft", label: "Draft", icon: "swap" },
   { seg: "squad", label: "Squad", icon: "shield" },
+  { seg: "teams", label: "Teams", icon: "users" },
   { seg: "fixtures", label: "Fixtures", icon: "calendar" },
+  { seg: "bracket", label: "Bracket", icon: "ko" },
   { seg: "predictions", label: "Predictions", icon: "dice" },
   { seg: "scoring", label: "Scoring", icon: "info" },
 ];

@@ -22,6 +22,19 @@ async function main() {
     });
   }
 
+  // Drop nations no longer in the catalog (e.g. teams that didn't qualify) —
+  // but only ones nobody has drafted, to avoid breaking existing picks.
+  const validCodes = new Set(NATIONS.map((n) => n.code));
+  const stale = await prisma.nation.findMany({
+    where: { code: { notIn: [...validCodes] } },
+    select: { code: true, _count: { select: { picks: true } } },
+  });
+  const removable = stale.filter((n) => n._count.picks === 0).map((n) => n.code);
+  if (removable.length) {
+    await prisma.nation.deleteMany({ where: { code: { in: removable } } });
+    console.log(`→ Removed ${removable.length} non-catalog nation(s): ${removable.join(", ")}`);
+  }
+
   // Seed the placeholder schedule only when there are no fixtures yet; once the
   // results sync owns the fixture list, leave it alone.
   if ((await prisma.fixture.count()) === 0) {

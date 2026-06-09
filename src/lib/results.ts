@@ -26,11 +26,12 @@ export type SyncResult = { ok: boolean; updated: number; matches: number; messag
 
 const STAGE: Record<string, { label: string; ko: boolean; rank: number }> = {
   GROUP_STAGE: { label: "Group", ko: false, rank: 1 },
-  LAST_16: { label: "R16", ko: true, rank: 2 },
-  QUARTER_FINALS: { label: "QF", ko: true, rank: 3 },
-  SEMI_FINALS: { label: "SF", ko: true, rank: 4 },
-  THIRD_PLACE: { label: "3rd", ko: true, rank: 5 },
-  FINAL: { label: "Final", ko: true, rank: 6 },
+  LAST_32: { label: "R32", ko: true, rank: 2 },
+  LAST_16: { label: "R16", ko: true, rank: 3 },
+  QUARTER_FINALS: { label: "QF", ko: true, rank: 4 },
+  SEMI_FINALS: { label: "SF", ko: true, rank: 5 },
+  THIRD_PLACE: { label: "3rd", ko: true, rank: 6 },
+  FINAL: { label: "Final", ko: true, rank: 7 },
 };
 
 type Acc = {
