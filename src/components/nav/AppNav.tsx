@@ -101,7 +101,7 @@ export function AppNav({
           <Avatar name={you.name} color={you.color} size={32} />
         </header>
 
-        <main className="mx-auto w-full max-w-app flex-1 px-4 pb-28 pt-5 md:px-8 md:pt-8 md:pb-12">
+        <main className="mx-auto w-full max-w-app flex-1 px-4 pb-28 pt-5 md:px-8 md:pt-8 md:pb-12 lg:px-12 lg:pt-10">
           {children}
         </main>
 

@@ -1,9 +1,65 @@
+import * as React from "react";
 import { requireUserId } from "@/lib/session";
 import { getPoolView, getFixtures } from "@/server/pools";
 import { notFound } from "next/navigation";
-import { Card, Chip, Flag } from "@/components/ui/primitives";
+import { Card, Chip, Flag, SectionLabel } from "@/components/ui/primitives";
 import { Icon } from "@/components/ui/Icon";
 import type { RosterNation } from "@/lib/types";
+
+// ── Per-team knockout path: Group → R32 → R16 → QF → SF → Final ──
+const PATH_STEPS = ["Group", "R32", "R16", "QF", "SF", "Final"];
+function roundIndex(round: string): number {
+  const r = round.toLowerCase();
+  if (r.includes("final")) return 5;
+  if (r.includes("3rd") || r.includes("third") || r === "sf" || r.includes("semi")) return 4;
+  if (r === "qf" || r.includes("quarter")) return 3;
+  if (r.includes("16")) return 2;
+  if (r.includes("32")) return 1;
+  return 0;
+}
+
+function KnockoutPaths({ teams, ownerById }: { teams: RosterNation[]; ownerById: Map<string, { name: string; color: string }> }) {
+  if (teams.length === 0) return null;
+  const rows = teams
+    .map((n) => ({ n, reached: n.champion ? 5 : roundIndex(n.round) }))
+    .sort((a, b) => b.reached - a.reached || b.n.strength - a.n.strength);
+  return (
+    <div>
+      <SectionLabel>Drafted teams · road to glory</SectionLabel>
+      <Card pad={false} style={{ padding: "2px 16px" }}>
+        {rows.map(({ n, reached }) => {
+          const owner = n.ownerId ? ownerById.get(n.ownerId) : undefined;
+          const color = n.champion ? "var(--gold)" : owner?.color ?? "var(--accent)";
+          const out = !n.alive && !n.champion;
+          return (
+            <div key={n.code} className="flex items-center gap-3 border-b py-3.5 last:border-b-0" style={{ borderColor: "var(--line)" }}>
+              <Flag flag={n.flag} size={28} />
+              <div className="w-28 min-w-0 shrink-0">
+                <div className="truncate text-[13px] font-bold">{n.name}</div>
+                {owner && <div className="flex items-center gap-1 text-[10px]" style={{ color: "var(--faint)" }}><span className="h-1.5 w-1.5 rounded-full" style={{ background: owner.color }} />{owner.name}</div>}
+              </div>
+              <div className="flex flex-1 items-center">
+                {PATH_STEPS.map((s, i) => (
+                  <React.Fragment key={s}>
+                    {i > 0 && <div className="h-[3px] flex-1 rounded-full" style={{ background: i <= reached ? color : "var(--line)" }} />}
+                    <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full" title={s} style={{ background: i <= reached ? color : "transparent", border: `2px solid ${i <= reached ? color : "var(--line)"}` }} />
+                  </React.Fragment>
+                ))}
+                {n.champion && <Icon name="trophy" size={15} color="var(--gold)" className="ml-1.5" />}
+              </div>
+              <span className="w-16 shrink-0 text-right text-[10.5px] font-bold uppercase tracking-wide" style={{ color: n.champion ? "var(--gold)" : out ? "var(--neg)" : "var(--pos)" }}>
+                {n.champion ? "Champion" : out ? `Out · ${n.round}` : reached > 0 ? `In · ${n.round}` : "Group"}
+              </span>
+            </div>
+          );
+        })}
+      </Card>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 px-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--faint)" }}>
+        {PATH_STEPS.map((s) => <span key={s}>{s}</span>)}
+      </div>
+    </div>
+  );
+}
 
 type Fx = Awaited<ReturnType<typeof getFixtures>>[number];
 
@@ -56,6 +112,8 @@ export default async function BracketPage({ params }: { params: { poolId: string
   if (!pool) notFound();
   const fixtures = await getFixtures();
   const nationByCode = new Map(pool.nations.map((n) => [n.code, n]));
+  const ownerById = new Map(pool.managers.map((m) => [m.membershipId, { name: m.name, color: m.color }]));
+  const draftedTeams = pool.nations.filter((n) => n.ownerId);
 
   const byRound = new Map<string, Fx[]>();
   for (const fx of fixtures) {
@@ -132,6 +190,8 @@ export default async function BracketPage({ params }: { params: { poolId: string
           )}
         </div>
       )}
+
+      <KnockoutPaths teams={draftedTeams} ownerById={ownerById} />
     </div>
   );
 }

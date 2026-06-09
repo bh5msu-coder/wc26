@@ -35,7 +35,7 @@ const config: Config = {
         sm: "12px",
       },
       maxWidth: {
-        app: "1120px",
+        app: "1240px",
       },
       boxShadow: {
         card: "0 18px 40px rgba(0,0,0,0.35)",
