@@ -58,6 +58,11 @@ export async function syncResults(): Promise<SyncResult> {
   }
 
   const matches = data.matches ?? [];
+  // Don't touch the DB on an empty response — otherwise the fixture rebuild
+  // below would wipe the existing schedule and replace it with nothing.
+  if (matches.length === 0) {
+    return { ok: true, updated: 0, matches: 0, message: "No matches returned." };
+  }
 
   // Build the code/name lookup from the live catalog, then resolve every team
   // through the explicit mapping table (team-codes.ts).
@@ -123,42 +128,49 @@ export async function syncResults(): Promise<SyncResult> {
     }
   }
 
-  // update matching nations
-  let updated = 0;
-  for (const [code, a] of acc) {
-    if (!codeSet.has(code)) continue;
-    await prisma.nation.update({
-      where: { code },
-      data: {
-        W: a.W, D: a.D, L: a.L, GF: a.GF, CS: a.CS, KOW: a.KOW,
-        round: a.stageLabel, alive: !a.lostKO, champion: a.champion,
-      },
-    });
-    updated += 1;
-  }
+  // Once any knockout match is decided, the group stage is over — so a team
+  // that only ever appeared in group games is eliminated, not "alive".
+  const koStarted = matches.some((m) => STAGE[m.stage]?.ko && m.status === "FINISHED");
 
-  // rebuild the fixture list from the schedule
+  // update matching nations in one transaction
+  const nationOps = [...acc.entries()]
+    .filter(([code]) => codeSet.has(code))
+    .map(([code, a]) => {
+      const eliminatedInGroup = koStarted && a.stageRank <= 1;
+      return prisma.nation.update({
+        where: { code },
+        data: {
+          W: a.W, D: a.D, L: a.L, GF: a.GF, CS: a.CS, KOW: a.KOW,
+          round: a.stageLabel, alive: !a.lostKO && !eliminatedInGroup, champion: a.champion,
+        },
+      });
+    });
+  if (nationOps.length) await prisma.$transaction(nationOps);
+
+  // rebuild the fixture list atomically (delete + inserts in one transaction)
   const sorted = [...matches].sort((x, y) => x.utcDate.localeCompare(y.utcDate));
-  await prisma.fixture.deleteMany({});
-  let sort = 0;
-  for (const m of sorted) {
-    const st = STAGE[m.stage];
-    const status = m.status === "FINISHED" ? "final" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "upcoming";
-    const when = new Date(m.utcDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    await prisma.fixture.create({
-      data: {
-        id: String(m.id),
-        stage: st?.label ?? m.stage ?? "Match",
-        status,
-        homeCode: resolve(m.homeTeam) || "TBD",
-        awayCode: resolve(m.awayTeam) || "TBD",
-        hs: m.score?.fullTime?.home ?? null,
-        as: m.score?.fullTime?.away ?? null,
-        whenLabel: when,
-        sort: sort++,
-      },
-    });
-  }
+  const fixtureOps = [
+    prisma.fixture.deleteMany({}),
+    ...sorted.map((m, i) => {
+      const st = STAGE[m.stage];
+      const status = m.status === "FINISHED" ? "final" : m.status === "IN_PLAY" || m.status === "PAUSED" ? "live" : "upcoming";
+      const when = new Date(m.utcDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return prisma.fixture.create({
+        data: {
+          id: String(m.id),
+          stage: st?.label ?? m.stage ?? "Match",
+          status,
+          homeCode: resolve(m.homeTeam) || "TBD",
+          awayCode: resolve(m.awayTeam) || "TBD",
+          hs: m.score?.fullTime?.home ?? null,
+          as: m.score?.fullTime?.away ?? null,
+          whenLabel: when,
+          sort: i,
+        },
+      });
+    }),
+  ];
+  await prisma.$transaction(fixtureOps);
 
-  return { ok: true, updated, matches: matches.length };
+  return { ok: true, updated: nationOps.length, matches: matches.length };
 }
