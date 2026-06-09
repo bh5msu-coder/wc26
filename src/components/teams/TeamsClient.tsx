@@ -69,7 +69,53 @@ function TeamCard({ n }: { n: TeamNation }) {
   );
 }
 
+function GroupsBoard({ nations }: { nations: TeamNation[] }) {
+  const groups = [...new Set(nations.map((n) => n.group))].sort();
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {groups.map((g) => {
+        const rows = nations
+          .filter((n) => n.group === g)
+          .map((n) => ({ ...n, P: n.W + n.D + n.L, Pts: n.W * 3 + n.D }))
+          .sort((a, b) => b.Pts - a.Pts || b.GF - a.GF || (a.fifaRank ?? 999) - (b.fifaRank ?? 999));
+        return (
+          <Card key={g} pad={false} style={{ padding: "10px 12px" }}>
+            <div className="mb-2 flex items-center gap-2">
+              <GroupChip group={g} />
+              <span className="text-[12px] font-bold" style={{ color: "var(--faint)" }}>Group {g}</span>
+            </div>
+            <div className="flex items-center gap-2 px-1 pb-1 text-[9px] font-bold uppercase tracking-wide" style={{ color: "var(--faint)" }}>
+              <span className="w-4" />
+              <span className="flex-1">Team</span>
+              <span className="w-5 text-center">P</span>
+              <span className="w-5 text-center">GF</span>
+              <span className="w-6 text-center">Pts</span>
+            </div>
+            {rows.map((n, i) => {
+              const advance = i < 2;
+              const third = i === 2;
+              const mark = advance ? "var(--pos)" : third ? "var(--gold)" : "transparent";
+              return (
+                <div key={n.code} className="flex items-center gap-2 py-1.5" style={{ borderLeft: `2px solid ${mark}`, paddingLeft: 5 }}>
+                  <span className="w-3 text-center text-[11px] font-bold" style={{ color: advance ? "var(--pos)" : third ? "var(--gold)" : "var(--faint)" }}>{i + 1}</span>
+                  <span className="flag" style={{ fontSize: 15 }}>{n.flag}</span>
+                  <span className="flex-1 truncate text-[12px] font-bold">{n.code}</span>
+                  {n.ownerColor && <span className="h-1.5 w-1.5 rounded-full" style={{ background: n.ownerColor }} title={n.ownerName ?? undefined} />}
+                  <span className="w-5 text-center text-[11px]" style={{ color: "var(--dim)" }}>{n.P}</span>
+                  <span className="w-5 text-center text-[11px]" style={{ color: "var(--dim)" }}>{n.GF}</span>
+                  <span className="w-6 text-center text-[12.5px] font-extrabold">{n.Pts}</span>
+                </div>
+              );
+            })}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 export function TeamsClient({ nations }: { nations: TeamNation[] }) {
+  const [view, setView] = React.useState<"teams" | "groups">("teams");
   const [conf, setConf] = React.useState<string>("All");
   const [sort, setSort] = React.useState<Sort>("rank");
 
@@ -90,31 +136,53 @@ export function TeamsClient({ nations }: { nations: TeamNation[] }) {
           <h1 className="display" style={{ fontSize: 30 }}>Teams</h1>
         </div>
         <div className="flex gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
-          {(["rank", "strength", "group"] as const).map((s) => (
-            <button key={s} onClick={() => setSort(s)} className="rounded-full px-3 py-1.5 text-[12px] font-bold capitalize" style={{ background: sort === s ? "var(--accent)" : "transparent", color: sort === s ? "var(--accent-ink)" : "var(--dim)" }}>
-              {s === "rank" ? "FIFA rank" : s}
+          {(["teams", "groups"] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)} className="rounded-full px-4 py-1.5 text-[12px] font-bold capitalize" style={{ background: view === v ? "var(--accent)" : "transparent", color: view === v ? "var(--accent-ink)" : "var(--dim)" }}>
+              {v === "teams" ? "Directory" : "Groups"}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {["All", ...CONFEDS].map((c) => {
-          const count = c === "All" ? nations.length : nations.filter((n) => n.confederation === c).length;
-          if (c !== "All" && count === 0) return null;
-          const active = conf === c;
-          return (
-            <button key={c} onClick={() => setConf(c)} className="rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: active ? "var(--accent)" : "var(--chip-bg)", color: active ? "var(--accent-ink)" : "var(--dim)", border: `1px solid ${active ? "transparent" : "var(--line)"}` }}>
-              {c} <span style={{ opacity: 0.6 }}>{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      {view === "groups" ? (
+        <>
+          <div className="flex items-center gap-4 text-[11px] font-semibold" style={{ color: "var(--faint)" }}>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "var(--pos)" }} /> Top 2 advance</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "var(--gold)" }} /> 3rd · best-thirds race</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "var(--accent)" }} /> drafted</span>
+          </div>
+          <GroupsBoard nations={nations} />
+        </>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-1.5">
+              {["All", ...CONFEDS].map((c) => {
+                const count = c === "All" ? nations.length : nations.filter((n) => n.confederation === c).length;
+                if (c !== "All" && count === 0) return null;
+                const active = conf === c;
+                return (
+                  <button key={c} onClick={() => setConf(c)} className="rounded-full px-3 py-1.5 text-[12px] font-bold" style={{ background: active ? "var(--accent)" : "var(--chip-bg)", color: active ? "var(--accent-ink)" : "var(--dim)", border: `1px solid ${active ? "transparent" : "var(--line)"}` }}>
+                    {c} <span style={{ opacity: 0.6 }}>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-1 rounded-full p-1" style={{ background: "var(--surface)", border: "1px solid var(--line)" }}>
+              {(["rank", "strength", "group"] as const).map((s) => (
+                <button key={s} onClick={() => setSort(s)} className="rounded-full px-3 py-1.5 text-[12px] font-bold capitalize" style={{ background: sort === s ? "var(--accent)" : "transparent", color: sort === s ? "var(--accent-ink)" : "var(--dim)" }}>
+                  {s === "rank" ? "FIFA rank" : s}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {sorted.map((n) => <TeamCard key={n.code} n={n} />)}
-      </div>
-      {sorted.length === 0 && <SectionLabel>No teams in this confederation.</SectionLabel>}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sorted.map((n) => <TeamCard key={n.code} n={n} />)}
+          </div>
+          {sorted.length === 0 && <SectionLabel>No teams in this confederation.</SectionLabel>}
+        </>
+      )}
     </div>
   );
 }

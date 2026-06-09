@@ -77,8 +77,11 @@ export function StandingRowItem({ row, leader }: { row: StandingRow; leader: num
             </span>
           )}
         </div>
-        <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--faint)" }}>
-          {row.rank === 1 ? "Leads the pool" : `${gap} behind`}
+        <div className="mt-0.5 flex items-center gap-2">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full" style={{ background: "var(--chip-bg)" }}>
+            <div className="h-full rounded-full" style={{ width: `${leader > 0 ? Math.max(2, (row.total / leader) * 100) : 0}%`, background: me ? "var(--accent)" : row.rank === 1 ? "var(--gold)" : "var(--accent-2)" }} />
+          </div>
+          <span className="text-[10.5px] font-semibold" style={{ color: "var(--faint)" }}>{row.rank === 1 ? "Leads" : `−${gap}`}</span>
         </div>
       </div>
       <div className="display" style={{ fontSize: 26 }}>{row.total}</div>

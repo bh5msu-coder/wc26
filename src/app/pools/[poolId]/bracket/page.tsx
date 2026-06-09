@@ -26,10 +26,10 @@ const ROUND_LABEL: Record<string, string> = {
 
 function Side({ n, score, won, dim }: { n?: RosterNation; score: number | null; won: boolean; dim: boolean }) {
   return (
-    <div className="flex items-center gap-2" style={{ opacity: dim ? 0.45 : 1 }}>
+    <div className="flex items-center gap-2" style={{ opacity: dim ? 0.4 : 1 }}>
       <Flag flag={n?.flag ?? "🏳️"} size={22} />
-      <span className="flex-1 truncate text-[12px]" style={{ fontWeight: won ? 800 : 600 }}>{n?.code ?? "TBD"}</span>
-      <span className="display" style={{ fontSize: 14 }}>{score ?? ""}</span>
+      <span className="flex-1 truncate text-[12px]" style={{ fontWeight: won ? 800 : 600, color: won ? "var(--accent)" : "var(--text)" }}>{n?.code ?? "TBD"}</span>
+      <span className="display" style={{ fontSize: 14, color: won ? "var(--accent)" : "var(--text)" }}>{score ?? ""}</span>
     </div>
   );
 }
@@ -68,6 +68,13 @@ export default async function BracketPage({ params }: { params: { poolId: string
   const third = byRound.get("3rd") ?? [];
   const hasBracket = liveRounds.length > 0;
 
+  // champion = winner of a decided final
+  const finalFx = (byRound.get("Final") ?? [])[0];
+  const champion =
+    finalFx && finalFx.status === "final" && finalFx.hs != null && finalFx.as != null
+      ? nationByCode.get(finalFx.hs > finalFx.as ? finalFx.homeCode : finalFx.awayCode)
+      : undefined;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -92,9 +99,25 @@ export default async function BracketPage({ params }: { params: { poolId: string
         </Card>
       ) : (
         <div className="overflow-x-auto pb-2">
-          <div className="flex gap-4" style={{ minWidth: "min-content" }}>
-            {liveRounds.map((r) => (
-              <div key={r} className="flex flex-col gap-2">
+          {champion && (
+            <Card style={{ padding: "14px 18px", marginBottom: 18, background: "linear-gradient(135deg, rgba(255,200,61,0.16), var(--surface))", border: "1px solid rgba(255,200,61,0.4)" }}>
+              <div className="flex items-center gap-3">
+                <Icon name="trophy" size={26} color="var(--gold)" />
+                <Flag flag={champion.flag} size={36} />
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.1em]" style={{ color: "var(--gold)" }}>World champions</div>
+                  <div className="display" style={{ fontSize: 26 }}>{champion.name}</div>
+                </div>
+              </div>
+            </Card>
+          )}
+          <div className="flex items-stretch gap-0" style={{ minWidth: "min-content" }}>
+            {liveRounds.map((r, ci) => (
+              <div
+                key={r}
+                className="flex flex-col justify-around gap-2 px-3"
+                style={{ borderLeft: ci > 0 ? "1px dashed var(--line)" : "none", minWidth: 168 }}
+              >
                 <div className="text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "var(--faint)" }}>{ROUND_LABEL[r]}</div>
                 {(byRound.get(r) ?? []).map((fx) => <MatchCard key={fx.id} fx={fx} nationByCode={nationByCode} />)}
               </div>
