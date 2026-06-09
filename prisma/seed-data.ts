@@ -1,7 +1,6 @@
 /**
- * Canonical demo universe for the WC26 draft pool.
- * One consistent world: 8 managers drafted six nations each (48 picks) in a
- * custom draft order. Mirrors the live preview so the seeded app matches.
+ * Catalog for the WC26 draft pool: the real 48-team World Cup 2026 field in
+ * their drawn groups, with FIFA ranking facts and ranking-derived strength.
  */
 
 export type SeedNation = {
@@ -45,6 +44,10 @@ const FACTS: Record<string, NationFacts> = {
   UZB: [50, 1465, "AFC", 0], CRC: [51, 1459, "CONCACAF", 0], QAT: [55, 1454, "AFC", 0],
   KSA: [61, 1421, "AFC", 0], JOR: [63, 1391, "AFC", 0], CPV: [69, 1366, "CAF", 0],
   JAM: [71, 1357, "CONCACAF", 0], GHA: [74, 1346, "CAF", 0], NZL: [85, 1295, "OFC", 0],
+  // Real WC26 qualifiers added to complete the field (ranks/points approximate).
+  SWE: [40, 1505, "UEFA", 0], CZE: [42, 1495, "UEFA", 0], RSA: [57, 1432, "CAF", 0],
+  IRQ: [58, 1430, "AFC", 0], COD: [60, 1418, "CAF", 0], BIH: [75, 1340, "UEFA", 0],
+  HAI: [83, 1305, "CONCACAF", 0], CUW: [90, 1275, "CONCACAF", 0],
 };
 
 // FIFA points → 0–100 strength: France ~1877 ≈ 95, weak qualifier ~1300 ≈ 20.
@@ -79,83 +82,42 @@ export const PLAYERS: SeedPlayer[] = [
   { id: "stove", name: "Stove", full: "Stove", email: "stove@wc26.app", color: "#FF5C72" },
 ];
 
-// owner, code, name, flag, group, W,D,L, GF, CS, KOW, round, alive, strength
-type DraftedRow = [string, string, string, string, string, number, number, number, number, number, number, string, boolean, number];
-
-const DRAFTED: DraftedRow[] = [
-  ["you", "ARG", "Argentina", "🇦🇷", "C", 4, 1, 0, 12, 3, 2, "QF", true, 90],
-  ["you", "MAR", "Morocco", "🇲🇦", "F", 3, 2, 0, 7, 3, 2, "QF", true, 78],
-  ["you", "COL", "Colombia", "🇨🇴", "G", 3, 1, 1, 7, 2, 1, "R16", false, 72],
-  ["you", "CAN", "Canada", "🇨🇦", "A", 1, 1, 1, 3, 1, 0, "Group", false, 58],
-
-  ["tom", "POR", "Portugal", "🇵🇹", "H", 4, 1, 0, 12, 2, 2, "QF", true, 86],
-  ["tom", "NED", "Netherlands", "🇳🇱", "E", 3, 2, 0, 9, 2, 2, "QF", true, 83],
-  ["tom", "SUI", "Switzerland", "🇨🇭", "B", 1, 2, 1, 4, 1, 0, "R32", false, 64],
-  ["tom", "DEN", "Denmark", "🇩🇰", "J", 1, 0, 2, 3, 1, 0, "Group", false, 62],
-
-  ["marcus", "FRA", "France", "🇫🇷", "D", 4, 0, 1, 11, 2, 2, "QF", true, 89],
-  ["marcus", "URU", "Uruguay", "🇺🇾", "K", 2, 2, 1, 6, 1, 1, "R16", false, 74],
-  ["marcus", "JPN", "Japan", "🇯🇵", "I", 3, 0, 2, 8, 1, 1, "R16", false, 70],
-  ["marcus", "SRB", "Serbia", "🇷🇸", "L", 1, 0, 2, 3, 0, 0, "Group", false, 60],
-
-  ["diego", "BRA", "Brazil", "🇧🇷", "G", 3, 2, 0, 10, 2, 2, "QF", true, 91],
-  ["diego", "BEL", "Belgium", "🇧🇪", "E", 3, 1, 1, 9, 1, 1, "R16", false, 75],
-  ["diego", "MEX", "Mexico", "🇲🇽", "A", 2, 1, 1, 5, 2, 0, "R32", false, 66],
-  ["diego", "ECU", "Ecuador", "🇪🇨", "A", 1, 1, 1, 2, 2, 0, "Group", false, 61],
-
-  ["priya", "ESP", "Spain", "🇪🇸", "B", 4, 1, 0, 13, 2, 2, "QF", true, 92],
-  ["priya", "CRO", "Croatia", "🇭🇷", "K", 2, 3, 0, 6, 2, 1, "R16", false, 73],
-  ["priya", "USA", "USA", "🇺🇸", "D", 2, 1, 1, 6, 1, 0, "R32", false, 67],
-  ["priya", "AUS", "Australia", "🇦🇺", "B", 0, 2, 1, 2, 1, 0, "Group", false, 57],
-
-  ["jamie", "ENG", "England", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "F", 3, 1, 1, 8, 3, 2, "QF", true, 87],
-  ["jamie", "GER", "Germany", "🇩🇪", "H", 3, 1, 1, 10, 2, 1, "R16", false, 80],
-  ["jamie", "SEN", "Senegal", "🇸🇳", "I", 2, 0, 2, 5, 1, 0, "R32", false, 68],
-  ["jamie", "KOR", "South Korea", "🇰🇷", "J", 0, 1, 2, 2, 0, 0, "Group", false, 59],
+// The real 2026 World Cup field — all 48 qualified teams in their drawn groups
+// (Final Draw, 5 Dec 2025). [code, name, flag, group A–L].
+const REAL_TEAMS: [string, string, string, string][] = [
+  // Group A
+  ["MEX", "Mexico", "🇲🇽", "A"], ["RSA", "South Africa", "🇿🇦", "A"], ["KOR", "South Korea", "🇰🇷", "A"], ["CZE", "Czechia", "🇨🇿", "A"],
+  // Group B
+  ["CAN", "Canada", "🇨🇦", "B"], ["SUI", "Switzerland", "🇨🇭", "B"], ["QAT", "Qatar", "🇶🇦", "B"], ["BIH", "Bosnia & Herzegovina", "🇧🇦", "B"],
+  // Group C
+  ["BRA", "Brazil", "🇧🇷", "C"], ["MAR", "Morocco", "🇲🇦", "C"], ["HAI", "Haiti", "🇭🇹", "C"], ["SCO", "Scotland", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "C"],
+  // Group D
+  ["USA", "USA", "🇺🇸", "D"], ["PAR", "Paraguay", "🇵🇾", "D"], ["AUS", "Australia", "🇦🇺", "D"], ["TUR", "Türkiye", "🇹🇷", "D"],
+  // Group E
+  ["GER", "Germany", "🇩🇪", "E"], ["CUW", "Curaçao", "🇨🇼", "E"], ["CIV", "Ivory Coast", "🇨🇮", "E"], ["ECU", "Ecuador", "🇪🇨", "E"],
+  // Group F
+  ["NED", "Netherlands", "🇳🇱", "F"], ["JPN", "Japan", "🇯🇵", "F"], ["TUN", "Tunisia", "🇹🇳", "F"], ["SWE", "Sweden", "🇸🇪", "F"],
+  // Group G
+  ["BEL", "Belgium", "🇧🇪", "G"], ["EGY", "Egypt", "🇪🇬", "G"], ["IRN", "Iran", "🇮🇷", "G"], ["NZL", "New Zealand", "🇳🇿", "G"],
+  // Group H
+  ["ESP", "Spain", "🇪🇸", "H"], ["CPV", "Cape Verde", "🇨🇻", "H"], ["KSA", "Saudi Arabia", "🇸🇦", "H"], ["URU", "Uruguay", "🇺🇾", "H"],
+  // Group I
+  ["FRA", "France", "🇫🇷", "I"], ["SEN", "Senegal", "🇸🇳", "I"], ["NOR", "Norway", "🇳🇴", "I"], ["IRQ", "Iraq", "🇮🇶", "I"],
+  // Group J
+  ["ARG", "Argentina", "🇦🇷", "J"], ["ALG", "Algeria", "🇩🇿", "J"], ["AUT", "Austria", "🇦🇹", "J"], ["JOR", "Jordan", "🇯🇴", "J"],
+  // Group K
+  ["POR", "Portugal", "🇵🇹", "K"], ["UZB", "Uzbekistan", "🇺🇿", "K"], ["COL", "Colombia", "🇨🇴", "K"], ["COD", "DR Congo", "🇨🇩", "K"],
+  // Group L
+  ["ENG", "England", "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "L"], ["CRO", "Croatia", "🇭🇷", "L"], ["GHA", "Ghana", "🇬🇭", "L"], ["PAN", "Panama", "🇵🇦", "L"],
 ];
 
-// code, name, flag, group, strength
-const FREE_AGENTS: [string, string, string, string, number][] = [
-  ["NOR", "Norway", "🇳🇴", "E", 54], ["ITA", "Italy", "🇮🇹", "L", 58], ["POL", "Poland", "🇵🇱", "H", 33],
-  ["CRC", "Costa Rica", "🇨🇷", "C", 24], ["GHA", "Ghana", "🇬🇭", "D", 35], ["NGA", "Nigeria", "🇳🇬", "G", 44],
-  ["EGY", "Egypt", "🇪🇬", "F", 42], ["CIV", "Ivory Coast", "🇨🇮", "K", 40], ["TUN", "Tunisia", "🇹🇳", "J", 31],
-  ["ALG", "Algeria", "🇩🇿", "I", 30], ["CMR", "Cameroon", "🇨🇲", "B", 30], ["IRN", "Iran", "🇮🇷", "A", 28],
-  ["KSA", "Saudi Arabia", "🇸🇦", "H", 22], ["QAT", "Qatar", "🇶🇦", "L", 20], ["AUT", "Austria", "🇦🇹", "C", 38],
-  ["TUR", "Türkiye", "🇹🇷", "E", 37], ["SCO", "Scotland", "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "G", 33], ["PAR", "Paraguay", "🇵🇾", "D", 30],
-  ["PAN", "Panama", "🇵🇦", "I", 18], ["NZL", "New Zealand", "🇳🇿", "K", 17], ["JAM", "Jamaica", "🇯🇲", "F", 23],
-  ["CPV", "Cape Verde", "🇨🇻", "J", 16], ["UZB", "Uzbekistan", "🇺🇿", "B", 18], ["JOR", "Jordan", "🇯🇴", "L", 16],
-];
-
-export const NATIONS: SeedNation[] = [
-  ...DRAFTED.map((d): SeedNation => ({
-    code: d[1], name: d[2], flag: d[3], group: d[4],
-    // No results yet — records start at zero until real matches are played.
-    W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
-    round: "Group", alive: false, champion: false,
-    ...factsFor(d[1]),
-  })),
-  ...FREE_AGENTS.map(([code, name, flag, group]): SeedNation => ({
-    code, name, flag, group, W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
-    round: "Group", alive: false, champion: false,
-    ...factsFor(code),
-  })),
-];
-
-// ownerHandle, nationCode — in overall pick order (8 managers, 6 rounds, 48 picks).
-// Custom draft order: Bard 1·15·25·35·46·48 / Goalie 2·14·24·34·44·47 /
-// Andy 3·13·23·33·43·45 / Brain 4·12·22·31·41·42 / Jarn 5·11·21·29·39·40 /
-// Tom 6·10·20·28·37·38 / ZD 7·9·19·27·32·36 / Stove 8·16·17·18·26·30.
-// Best-available-by-strength is assigned to each successive pick.
-export const DRAFT_PICKS: [string, string][] = [
-  ["bard", "ESP"], ["goalie", "BRA"], ["andy", "ARG"], ["brain", "FRA"], ["jarn", "ENG"], ["tom", "POR"], ["zd", "NED"], ["stove", "GER"],
-  ["zd", "MAR"], ["tom", "BEL"], ["jarn", "URU"], ["brain", "CRO"], ["andy", "COL"], ["goalie", "JPN"], ["bard", "SEN"], ["stove", "USA"],
-  ["stove", "MEX"], ["stove", "SUI"], ["zd", "DEN"], ["tom", "ECU"], ["jarn", "SRB"], ["brain", "KOR"], ["andy", "CAN"], ["goalie", "ITA"],
-  ["bard", "AUS"], ["stove", "NOR"], ["zd", "NGA"], ["tom", "EGY"], ["jarn", "CIV"], ["stove", "AUT"], ["brain", "TUR"], ["zd", "GHA"],
-  ["andy", "POL"], ["goalie", "SCO"], ["bard", "TUN"], ["zd", "ALG"], ["tom", "CMR"], ["tom", "PAR"], ["jarn", "IRN"], ["jarn", "CRC"],
-  ["brain", "JAM"], ["brain", "KSA"], ["andy", "QAT"], ["goalie", "PAN"], ["andy", "UZB"], ["bard", "NZL"], ["goalie", "CPV"], ["bard", "JOR"],
-];
-
-export const DRAFT_ORDER_R1 = ["bard", "goalie", "andy", "brain", "jarn", "tom", "zd", "stove"];
+export const NATIONS: SeedNation[] = REAL_TEAMS.map(([code, name, flag, group]): SeedNation => ({
+  code, name, flag, group,
+  // No results yet — records start at zero until real matches are played.
+  W: 0, D: 0, L: 0, GF: 0, CS: 0, KOW: 0,
+  round: "Group", alive: false, champion: false,
+  ...factsFor(code),
+}));
 
 // Custom Wilboi 26 draft order — each manager's overall pick numbers (1..48).
 export const DRAFT_ORDER: Record<string, number[]> = {
@@ -177,16 +139,17 @@ export type SeedFixture = {
   events?: { t: string; code: string; text: string; kind: string }[];
 };
 
-// Schedule only — no scores or results until real matches are played.
+// Real opening-round group fixtures (June 2026). The results sync replaces this
+// with the full live schedule once RESULTS_API_TOKEN is configured.
 export const FIXTURES: SeedFixture[] = [
-  { id: "qf1", stage: "Quarter-final", status: "upcoming", homeCode: "ARG", awayCode: "NED", whenLabel: "TBD", venue: "MetLife Stadium", sort: 0 },
-  { id: "qf2", stage: "Quarter-final", status: "upcoming", homeCode: "ESP", awayCode: "BRA", whenLabel: "TBD", venue: "AT&T Stadium", sort: 1 },
-  { id: "qf3", stage: "Quarter-final", status: "upcoming", homeCode: "FRA", awayCode: "ENG", whenLabel: "TBD", venue: "SoFi Stadium", sort: 2 },
-  { id: "qf4", stage: "Quarter-final", status: "upcoming", homeCode: "POR", awayCode: "MAR", whenLabel: "TBD", venue: "Estadio Azteca", sort: 3 },
-  { id: "r16a", stage: "Round of 16", status: "upcoming", homeCode: "ARG", awayCode: "GER", whenLabel: "TBD", sort: 4 },
-  { id: "r16b", stage: "Round of 16", status: "upcoming", homeCode: "ESP", awayCode: "URU", whenLabel: "TBD", sort: 5 },
-  { id: "r16c", stage: "Round of 16", status: "upcoming", homeCode: "MAR", awayCode: "BEL", whenLabel: "TBD", sort: 6 },
-  { id: "r16d", stage: "Round of 16", status: "upcoming", homeCode: "POR", awayCode: "JPN", whenLabel: "TBD", sort: 7 },
+  { id: "wc26-1", stage: "Group A", status: "upcoming", homeCode: "MEX", awayCode: "RSA", whenLabel: "Jun 11", venue: "Estadio Azteca", sort: 0 },
+  { id: "wc26-2", stage: "Group D", status: "upcoming", homeCode: "USA", awayCode: "PAR", whenLabel: "Jun 12", venue: "SoFi Stadium", sort: 1 },
+  { id: "wc26-3", stage: "Group B", status: "upcoming", homeCode: "QAT", awayCode: "SUI", whenLabel: "Jun 13", venue: "Levi's Stadium", sort: 2 },
+  { id: "wc26-4", stage: "Group F", status: "upcoming", homeCode: "NED", awayCode: "JPN", whenLabel: "Jun 14", venue: "AT&T Stadium", sort: 3 },
+  { id: "wc26-5", stage: "Group I", status: "upcoming", homeCode: "FRA", awayCode: "SEN", whenLabel: "Jun 16", sort: 4 },
+  { id: "wc26-6", stage: "Group J", status: "upcoming", homeCode: "ARG", awayCode: "ALG", whenLabel: "Jun 16", sort: 5 },
+  { id: "wc26-7", stage: "Group K", status: "upcoming", homeCode: "POR", awayCode: "COD", whenLabel: "Jun 17", sort: 6 },
+  { id: "wc26-8", stage: "Group E", status: "upcoming", homeCode: "GER", awayCode: "CIV", whenLabel: "Jun 20", venue: "Toronto", sort: 7 },
 ];
 
 // The live bracket the Monte Carlo predictor projects forward.
