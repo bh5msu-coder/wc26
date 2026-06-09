@@ -8,6 +8,8 @@
     "build": "prisma generate && if [ -n \"$DATABASE_URL\" ]; then export DIRECT_URL=\"${DIRECT_URL:-$DATABASE_URL}\"; prisma db push --accept-data-loss && (tsx prisma/seed.ts || echo 'seed step skipped'); else echo 'no DATABASE_URL set - skipping db push/seed'; fi && next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
@@ -34,7 +36,8 @@
     "prisma": "^6.2.1",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=18.18.0"
