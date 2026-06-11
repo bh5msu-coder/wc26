@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, pill, ICONS } from "../components/ui.js";
+import { avatar, pill, ICONS, natColors, readableOn } from "../components/ui.js";
 import { computeDerived, ownerByCode } from "../logic/selectors.js";
 
 export function renderNationDetail(ctx) {
@@ -17,11 +17,12 @@ export function renderNationDetail(ctx) {
     const player = state.data.players.find((p) => p.id === owner);
     clear(body);
     const stat = (label, val) => el("div", { class: "center", style: { flex: 1 } }, el("div", { class: "num numeral-lg" }, val), el("div", { class: "muted", style: { fontSize: "10px" } }, label));
+    const { a, b } = natColors(n);
     body.append(
-      el("div", { class: "card", style: { marginBottom: "12px", textAlign: "center" } },
-        el("div", { class: "flag", style: { fontSize: "54px" } }, n.flag),
-        el("div", { style: { fontFamily: "var(--display)", fontWeight: 800, fontSize: "24px", marginTop: "4px" } }, n.name),
-        el("div", { class: "wrap", style: { justifyContent: "center", marginTop: "8px" } },
+      el("div", { class: "natbanner", style: { background: `linear-gradient(135deg, ${a} 0%, ${b} 100%)`, color: readableOn(a) } },
+        el("div", { class: "flag" }, n.flag),
+        el("div", { class: "nname" }, n.name),
+        el("div", { class: "nmeta" },
           pill("Group " + n.group, "muted"), pill("FIFA #" + (n.fifaRank ?? "—"), "muted"), n.titles ? pill("★".repeat(n.titles), "soft") : "", n.champion ? pill("🏆 Champion", "coral") : (n.alive ? pill("Still alive", "done") : pill("Eliminated", "muted")),
         ),
       ),

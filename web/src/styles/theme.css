@@ -14,6 +14,13 @@
   --gold: #E0A23B;
   --green: #2EA56B;
   --blue: #2E7CF6;
+  --navy: #1B2A4A;
+  --pitch: #1E7A4D;
+  --violet: #7C3AED;
+
+  /* tournament ribbon — the colours of the global game */
+  --ribbon: linear-gradient(90deg, #2E7CF6, #2EA56B, #E0A23B, #F0492E, #7C3AED);
+  --hero-grad: linear-gradient(135deg, #15233f 0%, #1f3358 45%, #3a2a4d 100%);
 
   /* type */
   --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;

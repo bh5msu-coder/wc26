@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, flagChip, pill } from "../components/ui.js";
+import { avatar, flagChip, pill, natColors } from "../components/ui.js";
 import { draftState, roundOfPick } from "../logic/draftgen.js";
 import { effectivePicks } from "../logic/selectors.js";
 import { priorStrength } from "../logic/strength.js";
@@ -45,10 +45,14 @@ export function renderDraft(ctx) {
         const made = st.made.get(pn);
         const nat = made ? byCode.get(made.code) : null;
         const onClock = pn === st.onClock;
-        grid.appendChild(el("div", { class: "draftcell" + (p.isYou ? " you" : "") + (made ? "" : " empty") + (onClock ? " onclock" : "") },
+        const col = nat ? natColors(nat) : null;
+        grid.appendChild(el("div", {
+          class: "draftcell" + (p.isYou ? " you" : "") + (made ? " filled" : " empty") + (onClock ? " onclock" : ""),
+          style: col ? { "--nat-a": col.a, "--nat-b": col.b, background: col.a + "12" } : {},
+        },
           el("span", { class: "pn" }, pn),
           nat ? el("span", { class: "flag" }, nat.flag) : el("span", { class: "flag", style: { opacity: .4 } }, "·"),
-          el("span", { class: "code" }, nat ? nat.code : "—"),
+          el("span", { class: "code", style: col ? { color: col.a } : {} }, nat ? nat.code : "—"),
         ));
       });
     }
