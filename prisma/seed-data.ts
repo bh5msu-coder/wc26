@@ -55,11 +55,41 @@ export function strengthFromPoints(points: number): number {
   return Math.max(20, Math.min(99, Math.round(((points - 1300) / 580) * 75 + 20)));
 }
 
+/**
+ * Research-informed strength adjustments (deep-research scouting pass, Jun 2026).
+ * The FIFA-points base above captures ranking, but misses what actually moves a
+ * World Cup: current form & injuries, draw/path difficulty, tournament pedigree,
+ * and the bookmaker + Opta-supercomputer consensus. These deltas (in strength
+ * points, re-clamped to 20–99) layer those signals onto the base. Each line cites
+ * the headline reason; fuller sourcing lives in the research notes.
+ */
+export const STRENGTH_ADJ: Record<string, number> = {
+  ESP: +1, // consensus favourite — shortest odds (~+450) and Opta #1 (16.1%)
+  ENG: +2, // 3rd by both odds (~+700) and Opta (11.2%); Kane in elite form, no key injuries
+  POR: +3, // 2025 Nations League winners (beat Spain), Opta #5, fully fit
+  BRA: +1, // five-time champions under Ancelotti — but Rodrygo (ACL) out & Neymar a doubt cap it
+  GER: +2, // Opta #7 (5.1%); deep squad, only a minor injury (Karl)
+  MAR: +1, // 2022 semi-finalists and 2025 AFCON winners — proven tournament pedigree
+  URU: +4, // Bielsa; Copa América 2024 semi-finalists who beat Brazil; underrated by raw points
+  COL: +2, // Copa América 2024 runners-up; strong golden generation
+  MEX: +2, // host + 2025 Nations League & Gold Cup winners; altitude/home edge
+  USA: +2, // host advantage despite patchy warm-up form
+  CAN: +2, // host advantage (Davies misses the opener but returns later)
+  JPN: +2, // beat Brazil (Oct '25) & England (Mar '26); Mitoma & Minamino injuries temper it
+  SUI: +1, // Euro 2024 quarter-finalists; reliable knockout side
+  SEN: +1, // AFCON pedigree and beat England in 2025 — offset by a brutal Group I
+  CRO: +1, // 2018 finalists / 2022 semis pedigree, but an aging core
+  NOR: +12, // ~9th in the outright market & Opta top-10 vs a far lower ranking — Haaland (16 in qualifying), first WC since 1998
+  TUR: +1, // young and dangerous (Güler, Yıldız), but defensively fragile (lost 6-0 to Spain)
+  ECU: +3, // 2nd in CONMEBOL ahead of Uruguay/Colombia/Brazil; fewest goals conceded in qualifying
+};
+
 function factsFor(code: string): Pick<SeedNation, "strength" | "fifaRank" | "fifaPoints" | "confederation" | "titles"> {
   const f = FACTS[code];
   if (!f) return { strength: 50, fifaRank: null, fifaPoints: null, confederation: null, titles: 0 };
   const [rank, points, conf, titles] = f;
-  return { strength: strengthFromPoints(points), fifaRank: rank, fifaPoints: points, confederation: conf, titles };
+  const strength = Math.max(20, Math.min(99, strengthFromPoints(points) + (STRENGTH_ADJ[code] ?? 0)));
+  return { strength, fifaRank: rank, fifaPoints: points, confederation: conf, titles };
 }
 
 export type SeedPlayer = {
