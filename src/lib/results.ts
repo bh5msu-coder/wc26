@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { resolveNationCode, normalizeName } from "@/lib/team-codes";
+import { liveStrength } from "@/lib/form";
 
 /**
  * Pulls World Cup results from football-data.org (v4) and updates each nation's
@@ -67,9 +68,13 @@ export async function syncResults(): Promise<SyncResult> {
 
   // Build the code/name lookup from the live catalog, then resolve every team
   // through the explicit mapping table (team-codes.ts).
-  const allNations = await prisma.nation.findMany({ select: { code: true, name: true } });
+  const allNations = await prisma.nation.findMany({
+    select: { code: true, name: true, fifaPoints: true, strength: true },
+  });
   const codeSet = new Set(allNations.map((n) => n.code));
   const nameToCode = new Map(allNations.map((n) => [normalizeName(n.name), n.code] as const));
+  // prior inputs, to re-derive each nation's live strength from results below
+  const priorById = new Map(allNations.map((n) => [n.code, n] as const));
   const resolve = (t: FdTeam) => resolveNationCode(t, codeSet, nameToCode);
 
   const acc = new Map<string, Acc>();
@@ -138,11 +143,16 @@ export async function syncResults(): Promise<SyncResult> {
     .filter(([code]) => codeSet.has(code))
     .map(([code, a]) => {
       const eliminatedInGroup = koStarted && a.stageRank <= 1;
+      const prior = priorById.get(code);
+      // auto-revise strength from the live record: prior (FIFA base + research
+      // overlay, rebuilt from fifaPoints) blended with bounded in-tournament form
+      const strength = liveStrength(code, prior?.fifaPoints ?? null, prior?.strength ?? 50, a);
       return prisma.nation.update({
         where: { code },
         data: {
           W: a.W, D: a.D, L: a.L, GF: a.GF, CS: a.CS, KOW: a.KOW,
           round: a.stageLabel, alive: !a.lostKO && !eliminatedInGroup, champion: a.champion,
+          strength,
         },
       });
     });
