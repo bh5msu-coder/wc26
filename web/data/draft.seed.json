@@ -1,5 +1,5 @@
 {
-  "note": "Live draft state captured from the commissioner's board (picks 1-35 made). The in-app draft tool continues from pick 36 (ZD on the clock).",
+  "note": "Final draft board — all 48 picks made (captured from the commissioner's completed grid).",
   "picks": [
     { "pickNumber": 1, "round": 1, "managerId": "bard", "code": "ESP" },
     { "pickNumber": 2, "round": 1, "managerId": "goalie", "code": "BRA" },
@@ -35,6 +35,19 @@
     { "pickNumber": 32, "round": 5, "managerId": "zd", "code": "SWE" },
     { "pickNumber": 33, "round": 4, "managerId": "andy", "code": "SCO" },
     { "pickNumber": 34, "round": 4, "managerId": "goalie", "code": "ALG" },
-    { "pickNumber": 35, "round": 4, "managerId": "bard", "code": "PAN" }
+    { "pickNumber": 35, "round": 4, "managerId": "bard", "code": "PAN" },
+    { "pickNumber": 36, "round": 6, "managerId": "zd", "code": "RSA" },
+    { "pickNumber": 37, "round": 5, "managerId": "tom", "code": "TUN" },
+    { "pickNumber": 38, "round": 6, "managerId": "tom", "code": "QAT" },
+    { "pickNumber": 39, "round": 5, "managerId": "jarn", "code": "BIH" },
+    { "pickNumber": 40, "round": 6, "managerId": "jarn", "code": "GHA" },
+    { "pickNumber": 41, "round": 5, "managerId": "brain", "code": "COD" },
+    { "pickNumber": 42, "round": 6, "managerId": "brain", "code": "KSA" },
+    { "pickNumber": 43, "round": 5, "managerId": "andy", "code": "UZB" },
+    { "pickNumber": 44, "round": 5, "managerId": "goalie", "code": "JOR" },
+    { "pickNumber": 45, "round": 6, "managerId": "andy", "code": "NZL" },
+    { "pickNumber": 46, "round": 5, "managerId": "bard", "code": "CPV" },
+    { "pickNumber": 47, "round": 6, "managerId": "goalie", "code": "HAI" },
+    { "pickNumber": 48, "round": 6, "managerId": "bard", "code": "CUW" }
   ]
 }

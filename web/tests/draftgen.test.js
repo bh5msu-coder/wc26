@@ -19,11 +19,15 @@ describe("draft order helpers", () => {
 });
 
 describe("live draftState from the seeded board", () => {
-  it("recognises 35 made picks and puts ZD on the clock at pick 36", () => {
+  it("recognises a complete 48-pick draft with nobody on the clock", () => {
     const st = draftState(ORDER, seed.picks);
-    expect(st.made.size).toBe(35);
-    expect(st.onClock).toBe(36);
-    expect(st.onClockManager).toBe("zd");
+    expect(st.made.size).toBe(48);
+    expect(st.onClock).toBe(null);
+    expect(st.onClockManager).toBe(null);
+  });
+  it("assigns every pick to exactly one manager and no nation twice", () => {
+    expect(new Set(seed.picks.map((p) => p.code)).size).toBe(48);
+    expect(new Set(seed.picks.map((p) => p.pickNumber)).size).toBe(48);
   });
 });
 
