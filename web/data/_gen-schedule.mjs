@@ -53,24 +53,6 @@ groupLetters.forEach((g, gi) => {
 });
 
 // ── Knockout slots: teams TBD, filled as results are entered ──────────────────
-function koRound(stage, count, startDay, perDay) {
-  for (let i = 0; i < count; i++) {
-    const day = startDay + Math.floor(i / perDay);
-    matches.push({
-      id: `${stage.toLowerCase()}-${i + 1}`,
-      stage,
-      home: "TBD",
-      away: "TBD",
-      kickoff: iso(2026, 7, day, KICK[i % KICK.length]),
-      venueId: stage === "Final" ? "metlife" : nextVenue(),
-      status: "upcoming",
-    });
-  }
-}
-koRound("R32", 16, 28 - 28 + 28, 3); // Jun 28.. but month is July below; adjust:
-// fix: R32 spans Jun 28–Jul 3. Emit the four June R32 days manually, rest in July.
-matches.length = 72; // drop the placeholder R32 above, re-emit cleanly
-vCursor = 0;
 const koDays = {
   R32: ["2026-06-28", "2026-06-29", "2026-06-30", "2026-07-01", "2026-07-02", "2026-07-03"],
   R16: ["2026-07-04", "2026-07-05", "2026-07-06", "2026-07-07"],

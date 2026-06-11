@@ -797,7 +797,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-28T16:00:00Z",
-    "venueId": "azteca",
+    "venueId": "nrg",
     "status": "upcoming"
   },
   {
@@ -806,7 +806,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-28T19:00:00Z",
-    "venueId": "akron",
+    "venueId": "arrowhead",
     "status": "upcoming"
   },
   {
@@ -815,7 +815,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-28T22:00:00Z",
-    "venueId": "bbva",
+    "venueId": "sofi",
     "status": "upcoming"
   },
   {
@@ -824,7 +824,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-29T01:00:00Z",
-    "venueId": "bmo",
+    "venueId": "hardrock",
     "status": "upcoming"
   },
   {
@@ -833,7 +833,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-29T16:00:00Z",
-    "venueId": "bcplace",
+    "venueId": "metlife",
     "status": "upcoming"
   },
   {
@@ -842,7 +842,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-29T19:00:00Z",
-    "venueId": "mercedes",
+    "venueId": "lincoln",
     "status": "upcoming"
   },
   {
@@ -851,7 +851,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-30T22:00:00Z",
-    "venueId": "gillette",
+    "venueId": "levis",
     "status": "upcoming"
   },
   {
@@ -860,7 +860,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-30T01:00:00Z",
-    "venueId": "att",
+    "venueId": "lumen",
     "status": "upcoming"
   },
   {
@@ -869,7 +869,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-06-30T16:00:00Z",
-    "venueId": "nrg",
+    "venueId": "azteca",
     "status": "upcoming"
   },
   {
@@ -878,7 +878,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-01T19:00:00Z",
-    "venueId": "arrowhead",
+    "venueId": "akron",
     "status": "upcoming"
   },
   {
@@ -887,7 +887,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-01T22:00:00Z",
-    "venueId": "sofi",
+    "venueId": "bbva",
     "status": "upcoming"
   },
   {
@@ -896,7 +896,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-01T01:00:00Z",
-    "venueId": "hardrock",
+    "venueId": "bmo",
     "status": "upcoming"
   },
   {
@@ -905,7 +905,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-02T16:00:00Z",
-    "venueId": "metlife",
+    "venueId": "bcplace",
     "status": "upcoming"
   },
   {
@@ -914,7 +914,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-02T19:00:00Z",
-    "venueId": "lincoln",
+    "venueId": "mercedes",
     "status": "upcoming"
   },
   {
@@ -923,7 +923,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-02T22:00:00Z",
-    "venueId": "levis",
+    "venueId": "gillette",
     "status": "upcoming"
   },
   {
@@ -932,7 +932,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-03T01:00:00Z",
-    "venueId": "lumen",
+    "venueId": "att",
     "status": "upcoming"
   },
   {
@@ -941,7 +941,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-04T16:00:00Z",
-    "venueId": "azteca",
+    "venueId": "nrg",
     "status": "upcoming"
   },
   {
@@ -950,7 +950,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-04T19:00:00Z",
-    "venueId": "akron",
+    "venueId": "arrowhead",
     "status": "upcoming"
   },
   {
@@ -959,7 +959,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-05T22:00:00Z",
-    "venueId": "bbva",
+    "venueId": "sofi",
     "status": "upcoming"
   },
   {
@@ -968,7 +968,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-05T01:00:00Z",
-    "venueId": "bmo",
+    "venueId": "hardrock",
     "status": "upcoming"
   },
   {
@@ -977,7 +977,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-06T16:00:00Z",
-    "venueId": "bcplace",
+    "venueId": "metlife",
     "status": "upcoming"
   },
   {
@@ -986,7 +986,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-06T19:00:00Z",
-    "venueId": "mercedes",
+    "venueId": "lincoln",
     "status": "upcoming"
   },
   {
@@ -995,7 +995,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-07T22:00:00Z",
-    "venueId": "gillette",
+    "venueId": "levis",
     "status": "upcoming"
   },
   {
@@ -1004,7 +1004,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-07T01:00:00Z",
-    "venueId": "att",
+    "venueId": "lumen",
     "status": "upcoming"
   },
   {
@@ -1013,7 +1013,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-09T16:00:00Z",
-    "venueId": "nrg",
+    "venueId": "azteca",
     "status": "upcoming"
   },
   {
@@ -1022,7 +1022,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-09T19:00:00Z",
-    "venueId": "arrowhead",
+    "venueId": "akron",
     "status": "upcoming"
   },
   {
@@ -1031,7 +1031,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-10T22:00:00Z",
-    "venueId": "sofi",
+    "venueId": "bbva",
     "status": "upcoming"
   },
   {
@@ -1040,7 +1040,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-10T01:00:00Z",
-    "venueId": "hardrock",
+    "venueId": "bmo",
     "status": "upcoming"
   },
   {
@@ -1049,7 +1049,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-14T16:00:00Z",
-    "venueId": "metlife",
+    "venueId": "bcplace",
     "status": "upcoming"
   },
   {
@@ -1058,7 +1058,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-15T19:00:00Z",
-    "venueId": "lincoln",
+    "venueId": "mercedes",
     "status": "upcoming"
   },
   {
@@ -1067,7 +1067,7 @@
     "home": "TBD",
     "away": "TBD",
     "kickoff": "2026-07-18T16:00:00Z",
-    "venueId": "levis",
+    "venueId": "gillette",
     "status": "upcoming"
   },
   {

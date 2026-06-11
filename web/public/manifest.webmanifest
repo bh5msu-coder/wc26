@@ -1,0 +1,13 @@
+{
+  "name": "WB26WC — World Cup 26 Pool",
+  "short_name": "WB26WC",
+  "description": "Live World Cup 2026 draft-pool tracker for 8 managers.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#FBF2E5",
+  "theme_color": "#FBF2E5",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
