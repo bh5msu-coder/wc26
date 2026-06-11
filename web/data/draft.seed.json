@@ -1,5 +1,6 @@
 {
   "note": "Final draft board — all 48 picks made (captured from the commissioner's completed grid).",
+  "version": 2,
   "picks": [
     { "pickNumber": 1, "round": 1, "managerId": "bard", "code": "ESP" },
     { "pickNumber": 2, "round": 1, "managerId": "goalie", "code": "BRA" },

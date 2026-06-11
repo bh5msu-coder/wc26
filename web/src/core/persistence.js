@@ -6,6 +6,7 @@ const DEFAULTS = () => ({
   schemaVersion: SCHEMA,
   results: {},
   draftPicks: null, // null → fall back to the seeded board
+  draftSeedVersion: null, // version of the seed the saved picks were tagged against
   settings: { seed: null, runs: 10000, reducedMotion: "auto" },
   lastSimStamp: null,
 });
