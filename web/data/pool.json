@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "meta": { "id": "wilboi-26", "name": "Wilboi 26", "season": "World Cup 26", "rounds": 6, "managerCount": 8 },
+  "weights": { "win": 3, "draw": 1, "goal": 1, "cs": 1, "ko": 1, "champ": 1 },
+  "draftOrder": {
+    "bard":   [1, 15, 25, 35, 46, 48],
+    "goalie": [2, 14, 24, 34, 44, 47],
+    "andy":   [3, 13, 23, 33, 43, 45],
+    "brain":  [4, 12, 22, 31, 41, 42],
+    "jarn":   [5, 11, 21, 29, 39, 40],
+    "tom":    [6, 10, 20, 28, 37, 38],
+    "zd":     [7, 9, 19, 27, 32, 36],
+    "stove":  [8, 16, 17, 18, 26, 30]
+  },
+  "economics": {
+    "currency": "USD",
+    "entryFee": 50,
+    "payoutSplit": [
+      { "place": 1, "label": "1st", "pct": 0.60 },
+      { "place": 2, "label": "2nd", "pct": 0.25 },
+      { "place": 3, "label": "3rd", "pct": 0.10 },
+      { "place": "groupLeader", "label": "Group-stage leader", "pct": 0.05 }
+    ]
+  },
+  "sim": { "defaultRuns": 10000, "strengthScale": 40, "defaultSeed": null }
+}

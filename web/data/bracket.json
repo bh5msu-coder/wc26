@@ -1,0 +1,14 @@
+{
+  "note": "Projected knockout topology used by the Monte-Carlo projection (QF -> SF -> Final). Edit as the real bracket fills in. fromHome/fromAway are indices into the previous round.",
+  "quarterfinals": [
+    { "id": "qf1", "home": "ARG", "away": "NED" },
+    { "id": "qf2", "home": "ESP", "away": "BRA" },
+    { "id": "qf3", "home": "FRA", "away": "ENG" },
+    { "id": "qf4", "home": "POR", "away": "MAR" }
+  ],
+  "semifinals": [
+    { "id": "sf1", "fromHome": 0, "fromAway": 1 },
+    { "id": "sf2", "fromHome": 2, "fromAway": 3 }
+  ],
+  "final": { "id": "final", "fromHome": 0, "fromAway": 1 }
+}
