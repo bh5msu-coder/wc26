@@ -29,10 +29,18 @@ import { renderNationDetail } from "./views/NationDetailView.js";
 import { computeDerived } from "./logic/selectors.js";
 
 const saved = load();
+
+// The seeded board is authoritative. If a returning visitor has live draft picks
+// saved from an older seed version, drop them so everyone converges on the current
+// board. Bump `version` in data/draft.seed.json to force a one-time reset for all.
+const SEED_VERSION = draftSeed.version ?? 0;
+const draftPicks = saved.draftSeedVersion === SEED_VERSION ? (saved.draftPicks || null) : null;
+if (saved.draftSeedVersion !== SEED_VERSION) save({ draftPicks, draftSeedVersion: SEED_VERSION });
+
 const store = createStore({
   data: { nations, players, pool, schedule, venues, bracket, seedPicks: draftSeed.picks },
   results: saved.results || {},
-  draftPicks: saved.draftPicks || null,
+  draftPicks,
   settings: saved.settings,
   route: { name: "table", params: [] },
 });
@@ -85,7 +93,7 @@ function makeCtx(params) {
     onCleanup: (fn) => cleanups.push(fn),
     subscribe: (fn) => { const un = store.subscribe(() => fn()); cleanups.push(un); return un; },
     commitResults: (results) => { store.setState({ results }); save({ results }); },
-    commitDraft: (draftPicks) => { store.setState({ draftPicks }); save({ draftPicks }); },
+    commitDraft: (draftPicks) => { store.setState({ draftPicks }); save({ draftPicks, draftSeedVersion: SEED_VERSION }); },
     persistSettings: (settings) => { store.setState({ settings }); save({ settings }); },
   };
 }
