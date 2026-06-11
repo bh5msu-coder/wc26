@@ -1,0 +1,10 @@
+[
+  { "id": "bard", "name": "Bard", "color": "#C6FF3A", "isYou": false },
+  { "id": "goalie", "name": "Goalie", "color": "#2E7CF6", "isYou": false },
+  { "id": "andy", "name": "Andy", "color": "#FF8A3D", "isYou": false },
+  { "id": "brain", "name": "Brain", "color": "#34E29B", "isYou": false },
+  { "id": "jarn", "name": "Jarn", "color": "#E45CFF", "isYou": false },
+  { "id": "tom", "name": "Tom", "color": "#FFC83D", "isYou": true },
+  { "id": "zd", "name": "ZD", "color": "#7C3AED", "isYou": false },
+  { "id": "stove", "name": "Stove", "color": "#FF5C72", "isYou": false }
+]
