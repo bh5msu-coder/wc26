@@ -19,14 +19,21 @@ import { ICONS, avatar } from "./components/ui.js";
 import { openModal } from "./components/Modal.js";
 
 import { renderTable } from "./views/TableView.js";
-import { renderDraft } from "./views/DraftView.js";
-import { renderSquad } from "./views/SquadView.js";
-import { renderFixtures } from "./views/FixturesView.js";
-import { renderScoring } from "./views/ScoringView.js";
-import { renderProjections } from "./views/ProjectionsView.js";
-import { renderPlayerDetail } from "./views/PlayerDetailView.js";
-import { renderNationDetail } from "./views/NationDetailView.js";
 import { computeDerived } from "./logic/selectors.js";
+
+// Only the landing view (Table) ships in the initial chunk. Every other route is
+// a dynamic import() so its code (and deps like the charts/worker glue) loads on
+// demand. Vite emits one chunk per route.
+const LAZY = {
+  draft: () => import("./views/DraftView.js").then((m) => m.renderDraft),
+  squad: () => import("./views/SquadView.js").then((m) => m.renderSquad),
+  fixtures: () => import("./views/FixturesView.js").then((m) => m.renderFixtures),
+  proj: () => import("./views/ProjectionsView.js").then((m) => m.renderProjections),
+  scoring: () => import("./views/ScoringView.js").then((m) => m.renderScoring),
+  player: () => import("./views/PlayerDetailView.js").then((m) => m.renderPlayerDetail),
+  nation: () => import("./views/NationDetailView.js").then((m) => m.renderNationDetail),
+};
+const EAGER = { table: renderTable };
 
 const saved = load();
 
@@ -53,10 +60,8 @@ const TABS = [
   ["proj", "Odds", ICONS.proj],
   ["scoring", "Scoring", ICONS.scoring],
 ];
-const VIEWS = {
-  table: renderTable, draft: renderDraft, squad: renderSquad, fixtures: renderFixtures,
-  proj: renderProjections, scoring: renderScoring, player: renderPlayerDetail, nation: renderNationDetail,
-};
+/** Warm a route's chunk ahead of navigation (hover/touch on its tab). */
+function prefetchRoute(name) { if (LAZY[name]) LAZY[name]().catch(() => {}); }
 
 // ── App shell ──
 const viewSlot = el("main", { id: "view", class: "shell" });
@@ -79,8 +84,11 @@ app.append(
 );
 
 TABS.forEach(([name, label, icon]) => {
-  tabbar.appendChild(el("button", { class: "tab", dataset: { tab: name }, on: { click: () => router.navigate(name) } },
-    icon(), el("span", {}, label), el("span", { class: "dot" })));
+  const warm = () => prefetchRoute(name);
+  tabbar.appendChild(el("button", {
+    class: "tab", dataset: { tab: name },
+    on: { click: () => router.navigate(name), pointerenter: warm, touchstart: warm, focus: warm },
+  }, icon(), el("span", {}, label), el("span", { class: "dot" })));
 });
 
 // ── View lifecycle ──
@@ -98,15 +106,40 @@ function makeCtx(params) {
   };
 }
 
-function onRoute({ name, params }) {
+let routeToken = 0;
+async function onRoute({ name, params }) {
+  const token = ++routeToken;
   teardown();
   store.setState({ route: { name, params } });
-  const render = VIEWS[name] || VIEWS.table;
+  setActiveTab(name);
+
+  let render = EAGER[name];
+  if (!render && LAZY[name]) {
+    mount(skeleton(name), viewSlot);
+    try { render = await LAZY[name](); }
+    catch { render = renderTable; }
+    if (token !== routeToken) return; // user navigated again while the chunk loaded
+  }
+  if (!render) render = renderTable;
+
   const node = render(makeCtx(params));
+  if (token !== routeToken) return;
   mount(node, viewSlot);
   window.scrollTo(0, 0);
+}
+
+function setActiveTab(name) {
   const activeTab = name === "player" ? "squad" : name === "nation" ? "fixtures" : name;
   [...tabbar.children].forEach((t) => t.setAttribute("aria-current", t.dataset.tab === activeTab ? "page" : "false"));
+}
+
+/** Lightweight shimmer placeholder shown while a route chunk loads. */
+function skeleton(name) {
+  const lines = name === "fixtures" ? 8 : name === "draft" ? 6 : 5;
+  return el("div", { class: "view-skel", attrs: { role: "status", "aria-label": "Loading…", "aria-live": "polite" } },
+    el("div", { class: "skel skel-head" }),
+    ...Array.from({ length: lines }, () => el("div", { class: "skel skel-row" })),
+  );
 }
 
 // ── Settings modal ──

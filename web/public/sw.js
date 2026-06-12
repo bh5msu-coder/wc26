@@ -1,8 +1,15 @@
 // Offline shell cache. Network-first for navigations + data so fresh deploys win;
 // cache-first for hashed immutable assets. Cache name bumps to evict old builds.
-const CACHE = "wb26wc-v1";
+const CACHE = "wb26wc-v2";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./favicon.svg", "./icons/icon.svg"];
 
-self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("install", (e) => {
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await c.addAll(SHELL).catch(() => {}); // precache the static shell; hashed assets cache on first fetch
+    await self.skipWaiting();
+  })());
+});
 
 self.addEventListener("activate", (e) => {
   e.waitUntil((async () => {
