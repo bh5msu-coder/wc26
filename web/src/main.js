@@ -15,6 +15,7 @@ import { createStore } from "./core/store.js";
 import { createRouter } from "./core/router.js";
 import { el, mount, clear } from "./core/dom.js";
 import { load, save, exportJSON, importJSON, resetLocal } from "./core/persistence.js";
+import { encodeSnapshot, decodeSnapshot, mergeShared, sharedSlice } from "./core/share.js";
 import { ICONS, avatar } from "./components/ui.js";
 import { openModal } from "./components/Modal.js";
 
@@ -162,7 +163,16 @@ function makeCtx(params) {
 }
 
 let routeToken = 0;
-async function onRoute({ name, params }) {
+async function onRoute(route) {
+  let { name, params } = route;
+  // Tier-A share import: opening #/join/<code> imports a shared snapshot, then
+  // lands on the Table with a merge/replace confirm.
+  if (name === "join") {
+    const code = params[0] || "";
+    history.replaceState(null, "", "#/table");
+    name = "table"; params = [];
+    queueMicrotask(() => handleJoin(code));
+  }
   const token = ++routeToken;
   teardown();
   store.setState({ route: { name, params } });
@@ -224,7 +234,10 @@ function openSettings() {
     field("Simulation seed (blank = random)", seed),
     field("Simulations per run", runs),
     el("button", { class: "btn primary block", on: { click: saveSettings } }, "Save settings"),
-    el("div", { class: "daygroup" }, "Backup & share state"),
+    el("div", { class: "daygroup" }, "Share & sync"),
+    el("button", { class: "btn ghost block", on: { click: () => { h.close(); openShareState(); } } }, "Share results (link & code)"),
+    el("button", { class: "btn ghost block", on: { click: () => { h.close(); openImportCode(); } } }, "Import from code"),
+    el("div", { class: "daygroup" }, "Backup (file)"),
     el("button", { class: "btn ghost block", on: { click: doExport } }, "Export results (JSON)"),
     el("button", { class: "btn ghost block", on: { click: () => fileInput.click() } }, "Import results (JSON)"),
     fileInput,
@@ -291,6 +304,55 @@ function openShare() {
     const dl = el("a", { class: "btn primary block", attrs: { href: url, download: "wb26wc-standings.png" }, style: { marginTop: "12px" } }, "Download image");
     openModal("Share standings", el("div", {}, img, dl));
   });
+}
+
+// ── Tier-A share: snapshot link/code (no backend) ──
+async function openShareState() {
+  let code;
+  try { code = await encodeSnapshot(store.getState()); }
+  catch (e) { alert("Couldn't build a share code: " + e.message); return; }
+  const link = location.origin + location.pathname + "#/join/" + code;
+  const linkInput = el("input", { attrs: { readonly: "", value: link, "aria-label": "Share link" }, style: inputStyle() });
+  const codeBox = el("textarea", { attrs: { readonly: "", rows: "3", "aria-label": "Share code" }, style: { ...inputStyle(), resize: "none", fontFamily: "monospace", fontSize: "11px" } });
+  codeBox.value = code;
+  const copy = (text, btn, label) => {
+    (navigator.clipboard?.writeText(text) || Promise.reject()).then(() => { btn.textContent = "Copied!"; setTimeout(() => { btn.textContent = label; }, 1200); }).catch(() => {});
+  };
+  const linkBtn = el("button", { class: "btn primary block", on: { click: () => copy(link, linkBtn, "Copy share link") } }, "Copy share link");
+  const codeBtn = el("button", { class: "btn ghost block", on: { click: () => copy(code, codeBtn, "Copy code") } }, "Copy code");
+  openModal("Share results", el("div", { class: "stack" },
+    el("div", { class: "muted", style: { fontSize: "13px", lineHeight: 1.4 } }, "Send this link to the group — opening it imports the current results & draft (with a merge/replace choice). No account needed. The shared snapshot never includes who you are."),
+    field("Share link", linkInput), linkBtn,
+    field("Or short code", codeBox), codeBtn,
+  ));
+}
+
+function openImportCode() {
+  const ta = el("textarea", { attrs: { rows: "4", placeholder: "Paste a share code…", "aria-label": "Share code" }, style: { ...inputStyle(), resize: "none", fontFamily: "monospace", fontSize: "12px" } });
+  const h = openModal("Import from code", el("div", { class: "stack" },
+    field("Share code", ta),
+    el("button", { class: "btn primary block", on: { click: () => { const c = ta.value.trim(); if (c) { h.close(); handleJoin(c); } } } }, "Import"),
+  ));
+}
+
+async function handleJoin(code) {
+  let incoming;
+  try { incoming = await decodeSnapshot(code); }
+  catch (e) { alert("That share link/code couldn't be read: " + e.message); return; }
+  const local = sharedSlice(store.getState());
+  const nIn = Object.keys(incoming.results || {}).length;
+  const nLocal = Object.keys(local.results || {}).length;
+  const apply = (mode) => {
+    const merged = mergeShared(local, incoming, mode);
+    store.setState(merged); save(merged);
+    h.close(); onRoute(router.current());
+  };
+  const h = openModal("Import shared results", el("div", { class: "stack" },
+    el("div", { class: "muted", style: { fontSize: "13px", lineHeight: 1.4 } },
+      `This snapshot has ${nIn} entered result${nIn === 1 ? "" : "s"} and ${incoming.draftPicks ? "a custom draft" : "the seeded draft"}. You currently have ${nLocal}. How should it apply?`),
+    el("button", { class: "btn primary block", on: { click: () => apply("merge") } }, "Merge — keep mine, add theirs"),
+    el("button", { class: "btn ghost block", on: { click: () => apply("replace") } }, "Replace — use theirs"),
+  ));
 }
 
 // ── helpers ──
