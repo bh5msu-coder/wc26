@@ -56,12 +56,32 @@ export function readableOn(hex) {
   return luminance(hex) > 0.5 ? "#1E160E" : "#FFFFFF";
 }
 
+/* ── Flags ─────────────────────────────────────────────────────────
+   Real 4:3 SVG flags (vendored from flag-icons, MIT) served as static
+   files from /flags/<fifa>.svg — kept OUT of the JS bundle, lazy-loaded,
+   and runtime-cached by the service worker. Consistent on every OS,
+   unlike emoji flags (which break to letter codes on Windows). */
+export function flagImg(nation, { size = 20, alt = "" } = {}) {
+  const code = nation?.code ? nation.code.toLowerCase() : null;
+  if (!code) return el("span", { class: "flag", style: { fontSize: size + "px" } }, "🏳️");
+  const h = Math.round(size), w = Math.round(size * 4 / 3);
+  return el("img", {
+    class: "flagimg",
+    attrs: {
+      src: `flags/${code}.svg`,
+      alt, "aria-hidden": alt ? null : "true",
+      loading: "lazy", decoding: "async", width: w, height: h,
+    },
+    style: { width: w + "px", height: h + "px" },
+  });
+}
+
 /** A flag-led chip; pass `dot` for a country-colour cue, `color` to tint the code. */
 export function flagChip(nation, { showName = false, size = 20, dot = false, color = false } = {}) {
   const { a } = natColors(nation);
   return el("span", { class: "flagchip" },
     dot ? el("span", { class: "natdot", style: { background: a } }) : "",
-    el("span", { class: "flag", style: { fontSize: size + "px" } }, nation?.flag || "🏳️"),
+    flagImg(nation, { size }),
     el("span", { class: "code", style: color ? { color: a } : {} }, showName ? (nation?.name || nation?.code) : (nation?.code || "—")),
   );
 }
@@ -75,7 +95,7 @@ export function natTag(nation, { note = "", strong = false } = {}) {
       ? { background: `linear-gradient(135deg, ${a}, ${b})`, color: readableOn(a), borderColor: a }
       : { background: a + "14", borderColor: a + "59", "--nat": a },
   },
-    el("span", { class: "flag", style: { fontSize: "15px" } }, nation?.flag || "🏳️"),
+    flagImg(nation, { size: 15 }),
     el("span", { class: "ncode" }, nation?.code || "—"),
     note !== "" ? el("span", { class: "nnote" }, note) : "",
   );

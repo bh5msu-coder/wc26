@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, flagChip, pill, natColors } from "../components/ui.js";
+import { avatar, flagChip, pill, natColors, flagImg } from "../components/ui.js";
 import { draftState, roundOfPick } from "../logic/draftgen.js";
 import { effectivePicks } from "../logic/selectors.js";
 import { priorStrength } from "../logic/strength.js";
@@ -51,7 +51,7 @@ export function renderDraft(ctx) {
           style: col ? { "--nat-a": col.a, "--nat-b": col.b, background: col.a + "12" } : {},
         },
           el("span", { class: "pn" }, pn),
-          nat ? el("span", { class: "flag" }, nat.flag) : el("span", { class: "flag", style: { opacity: .4 } }, "·"),
+          nat ? flagImg(nat, { size: 18 }) : el("span", { class: "flag", style: { opacity: .4 } }, "·"),
           el("span", { class: "code", style: col ? { color: col.a } : {} }, nat ? nat.code : "—"),
         ));
       });
@@ -67,9 +67,9 @@ export function renderDraft(ctx) {
       const panel = el("div", { style: { marginTop: "16px" } },
         el("div", { class: "daygroup" }, `Make pick ${st.onClock} · ${mgr.name} · best available`),
         el("div", { class: "wrap" }, ...avail.slice(0, 24).map((n) => el("button", {
-          class: "pill muted", style: { fontSize: "12px", padding: "7px 11px" },
+          class: "pill muted", style: { fontSize: "12px", padding: "7px 11px", gap: "6px" },
           on: { click: () => makePick(st.onClock, st.onClockManager, n.code) },
-        }, `${n.flag} ${n.code}`))),
+        }, flagImg(n, { size: 13 }), n.code))),
       );
       body.appendChild(panel);
     }
@@ -94,7 +94,7 @@ export function renderDraft(ctx) {
     const best = [...scored].sort((a, b) => b.value - a.value).slice(0, 3);
     const reach = [...scored].sort((a, b) => a.value - b.value).slice(0, 3);
     const line = (p, tone) => el("div", { class: "spread", style: { padding: "7px 0" } },
-      el("div", { class: "row" }, el("span", { class: "flag", style: { fontSize: "18px" } }, byCode.get(p.code)?.flag || ""), el("b", {}, p.code), el("span", { class: "muted", style: { fontSize: "11px" } }, "pick #" + p.pickNumber)),
+      el("div", { class: "row" }, flagImg(byCode.get(p.code), { size: 18 }), el("b", {}, p.code), el("span", { class: "muted", style: { fontSize: "11px" } }, "pick #" + p.pickNumber)),
       pill((p.value >= 0 ? "+" : "") + p.value, tone),
     );
     return el("div", { style: { marginTop: "16px" } },
