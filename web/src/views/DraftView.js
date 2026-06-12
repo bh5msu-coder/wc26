@@ -15,6 +15,7 @@ export function renderDraft(ctx) {
   function build() {
     const state = ctx.store.getState();
     const { players, pool, nations } = state.data;
+    const youId = state.currentUserId;
     const picks = effectivePicks(state);
     const order = pool.draftOrder;
     const st = draftState(order, picks);
@@ -38,7 +39,7 @@ export function renderDraft(ctx) {
 
     // grid
     const grid = el("div", { class: "draftgrid", style: { gridTemplateColumns: `repeat(${columns.length}, 1fr)` } });
-    columns.forEach((p) => grid.appendChild(el("div", { class: "colhead" }, avatar(p, 26), el("span", { class: "name", style: { color: p.isYou ? "var(--coral)" : "var(--faint)" } }, p.name))));
+    columns.forEach((p) => grid.appendChild(el("div", { class: "colhead" }, avatar(p, 26), el("span", { class: "name", style: { color: p.id === youId ? "var(--coral)" : "var(--faint)" } }, p.name))));
     for (let r = 0; r < rounds; r++) {
       columns.forEach((p) => {
         const pn = order[p.id][r];
@@ -47,7 +48,7 @@ export function renderDraft(ctx) {
         const onClock = pn === st.onClock;
         const col = nat ? natColors(nat) : null;
         grid.appendChild(el("div", {
-          class: "draftcell" + (p.isYou ? " you" : "") + (made ? " filled" : " empty") + (onClock ? " onclock" : ""),
+          class: "draftcell" + (p.id === youId ? " you" : "") + (made ? " filled" : " empty") + (onClock ? " onclock" : ""),
           style: col ? { "--nat-a": col.a, "--nat-b": col.b, background: col.a + "12" } : {},
         },
           el("span", { class: "pn" }, pn),

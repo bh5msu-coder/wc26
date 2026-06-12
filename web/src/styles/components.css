@@ -167,6 +167,32 @@
 .natbanner .nmeta { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
 .natbanner .pill.muted { background: rgba(255,255,255,.22); color: #fff; }
 
+/* identity: header chip + "who are you?" picker */
+.idchip {
+  display: inline-flex; align-items: center; gap: 6px; height: 38px; max-width: 144px;
+  padding: 0 12px 0 6px; border-radius: 999px; background: var(--card);
+  border: 1px solid var(--line); box-shadow: var(--e-1);
+  font-weight: 800; font-size: 12.5px; color: var(--ink);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.idchip:hover { transform: translateY(-1px); }
+.idchip .idname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idchip .iddot { width: 10px; height: 10px; border-radius: 50%; background: var(--faint); margin-left: 5px; flex: none; }
+.idchip.unset { color: var(--coral-deep); border-color: var(--coral); }
+.idchip.unset .iddot { background: var(--coral); }
+
+.idgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.idcard {
+  display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px;
+  border-radius: var(--r-md); border: 1px solid var(--line); background: var(--card);
+  font-weight: 800; font-size: 12px; color: var(--ink);
+  transition: transform var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.idcard:hover { transform: translateY(-2px); box-shadow: var(--e-1); }
+.idcard.sel { border-color: var(--coral); box-shadow: 0 0 0 1px var(--coral) inset; }
+.btn.sel { border-color: var(--coral); color: var(--coral-deep); }
+.card.you { border-color: var(--coral); box-shadow: 0 0 0 1px var(--coral) inset, var(--e-1); }
+
 /* route skeleton (shown while a lazy view chunk loads) */
 .view-skel { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
 .skel {

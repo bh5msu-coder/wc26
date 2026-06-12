@@ -29,7 +29,7 @@ export function renderTable(ctx) {
       el("div", { class: "rank num" }, "—"),
       avatar(player, 34),
       el("div", { class: "who" },
-        el("div", { class: "name" }, player.name + (player.isYou ? " · you" : "")),
+        el("div", { class: "name" }, player.name + (ctx.store.getState().currentUserId === player.id ? " · you" : "")),
         el("div", { class: "meta" }, ""),
         el("div", { class: "natdots" }),
       ),
@@ -55,7 +55,7 @@ export function renderTable(ctx) {
     let championJustCrowned = false;
     d.standings.forEach((r) => {
       const row = rowByMgr.get(r.id);
-      row.classList.toggle("you", r.isYou);
+      row.classList.toggle("you", r.id === state.currentUserId);
       row.classList.toggle("leader", r.rank === 1);
       row.querySelector(".rank").textContent = String(r.rank);
       const aliveTeams = r.nations.length;

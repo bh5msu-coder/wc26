@@ -24,7 +24,7 @@ export function renderPlayerDetail(ctx) {
     body.append(
       el("div", { class: "card", style: { marginBottom: "12px" } },
         el("div", { class: "spread" },
-          el("div", { class: "row" }, avatar(player, 44), el("div", {}, el("div", { style: { fontWeight: 800, fontSize: "18px" } }, player.name + (player.isYou ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "12px" } }, "rank #" + row.rank + " · " + row.alive + " alive"))),
+          el("div", { class: "row" }, avatar(player, 44), el("div", {}, el("div", { style: { fontWeight: 800, fontSize: "18px" } }, player.name + (player.id === state.currentUserId ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "12px" } }, "rank #" + row.rank + " · " + row.alive + " alive"))),
           el("div", { class: "center" }, el("div", { class: "num numeral-xl" }, row.total), el("div", { class: "muted", style: { fontSize: "11px" } }, "points")),
         ),
       ),

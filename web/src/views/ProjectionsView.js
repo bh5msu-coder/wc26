@@ -58,6 +58,7 @@ export function renderProjections(ctx) {
     stamp.textContent = `Simulated ${result.runs.toLocaleString()} times · as of ${stampLabel(ts)}`;
     const state = ctx.store.getState();
     const players = state.data.players;
+    const youId = state.currentUserId;
     const rows = result.managers.map((m) => ({ ...m, player: players.find((p) => p.id === m.membershipId) }))
       .sort((a, b) => b.winProb - a.winProb);
     clear(results);
@@ -65,7 +66,7 @@ export function renderProjections(ctx) {
     rows.forEach((m) => {
       card.appendChild(el("div", { class: "projrow" },
         el("div", { class: "spread", style: { marginBottom: "6px" } },
-          el("div", { class: "row" }, avatar(m.player, 28), el("div", {}, el("div", { style: { fontWeight: 800 } }, m.player.name + (m.player.isYou ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "11px" } }, `exp ${Math.round(m.expectedPoints)} pts · range ${m.p10}–${m.p90}`))),
+          el("div", { class: "row" }, avatar(m.player, 28), el("div", {}, el("div", { style: { fontWeight: 800 } }, m.player.name + (m.player.id === youId ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "11px" } }, `exp ${Math.round(m.expectedPoints)} pts · range ${m.p10}–${m.p90}`))),
           el("div", { class: "center" }, el("div", { class: "num numeral-lg", style: { color: "var(--coral-deep)" } }, pct(m.winProb, 1)), el("div", { class: "muted", style: { fontSize: "10px" } }, "win pool")),
         ),
         el("div", { class: "spread", style: { gap: "10px", alignItems: "flex-end" } },

@@ -9,7 +9,8 @@ const FILTERS = [["all", "All"], ["group", "Groups"], ["ko", "Knockout"], ["mine
 export function renderFixtures(ctx) {
   const root = el("div", {});
   const list = el("div", {});
-  let filter = "all";
+  // default to the current user's stake when they've picked an identity
+  let filter = ctx.store.getState().currentUserId ? "mine" : "all";
   const seg = el("div", { class: "seg", attrs: { role: "tablist" } },
     ...FILTERS.map(([k, label]) => el("button", { attrs: { role: "tab", "aria-pressed": String(k === filter) }, on: { click: () => { filter = k; build(); } } }, label)),
   );
@@ -26,7 +27,7 @@ export function renderFixtures(ctx) {
     const venueById = new Map(venues.map((v) => [v.id, v]));
     const owner = ownerByCode(effectivePicks(state));
     const colorOf = (mid) => players.find((p) => p.id === mid)?.color;
-    const me = players.find((p) => p.isYou)?.id;
+    const me = state.currentUserId;
 
     [...seg.children].forEach((b, i) => b.setAttribute("aria-pressed", String(FILTERS[i][0] === filter)));
 

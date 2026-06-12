@@ -51,6 +51,7 @@ const store = createStore({
   data: { nations, players, pool, schedule, venues, bracket, seedPicks: draftSeed.picks },
   results: saved.results || {},
   draftPicks,
+  currentUserId: saved.currentUserId ?? null, // read before first paint → no wrong-user flash
   settings: saved.settings,
   route: { name: "table", params: [] },
 });
@@ -66,6 +67,56 @@ const TABS = [
 /** Warm a route's chunk ahead of navigation (hover/touch on its tab). */
 function prefetchRoute(name) { if (LAZY[name]) LAZY[name]().catch(() => {}); }
 
+// ── Identity ("who am I") — a LOCAL, per-device preference. Never synced; never
+//    touches shared results. null = unchosen (show picker), "" = spectator, else id.
+const identityChip = el("button", { class: "idchip", attrs: { "aria-haspopup": "dialog" }, on: { click: () => openIdentityPicker() } });
+
+function renderIdentityChip() {
+  const id = store.getState().currentUserId;
+  const p = id ? players.find((m) => m.id === id) : null;
+  clear(identityChip);
+  if (p) {
+    identityChip.append(avatar(p, 22), el("span", { class: "idname" }, p.name));
+    identityChip.setAttribute("aria-label", `You are ${p.name}. Tap to change.`);
+  } else if (id === "") {
+    identityChip.append(el("span", { class: "iddot" }), el("span", { class: "idname" }, "Spectator"));
+    identityChip.setAttribute("aria-label", "Spectator. Tap to pick who you are.");
+  } else {
+    identityChip.classList.add("unset");
+    identityChip.append(el("span", { class: "iddot" }), el("span", { class: "idname" }, "Who are you?"));
+    identityChip.setAttribute("aria-label", "Tap to pick who you are.");
+  }
+  identityChip.classList.toggle("unset", !p && id !== "");
+}
+
+function setIdentity(id) {
+  store.setState({ currentUserId: id });
+  save({ currentUserId: id });
+  renderIdentityChip();
+  onRoute(router.current()); // re-render so "· you", highlights, and the My-stake default update
+}
+
+function openIdentityPicker() {
+  const cur = store.getState().currentUserId;
+  const grid = el("div", { class: "idgrid" });
+  players.forEach((p) => {
+    grid.appendChild(el("button", {
+      class: "idcard" + (p.id === cur ? " sel" : ""),
+      on: { click: () => { setIdentity(p.id); h.close(); } },
+    }, avatar(p, 42), el("span", { class: "idcard-name" }, p.name)));
+  });
+  const spectator = el("button", {
+    class: "btn ghost block" + (cur === "" ? " sel" : ""),
+    on: { click: () => { setIdentity(""); h.close(); } },
+  }, "Spectator · just watching");
+  const content = el("div", { class: "stack" },
+    el("div", { class: "muted", style: { fontSize: "13px", lineHeight: 1.4 } },
+      "Pick which manager you are. This stays on this device — it personalises the “· you” badge, the My-stake filter, and row highlights. It never changes shared results."),
+    grid, spectator,
+  );
+  const h = openModal("Who are you?", content);
+}
+
 // ── App shell ──
 const viewSlot = el("main", { id: "view", class: "shell" });
 const tabbar = el("nav", { class: "tabbar", attrs: { "aria-label": "Sections" } });
@@ -77,6 +128,7 @@ app.append(
     el("div", { class: "topbar" },
       el("div", { class: "brand" }, el("div", { class: "mark", html: 'WB<b>26</b>WC' }), el("div", { class: "sub" }, "World Cup 26")),
       el("div", { class: "row", style: { gap: "8px" } },
+        identityChip,
         el("button", { class: "iconbtn", attrs: { "aria-label": "Share standings" }, on: { click: openShare } }, ICONS.share()),
         el("button", { class: "iconbtn", attrs: { "aria-label": "Settings" }, on: { click: openSettings } }, ICONS.gear()),
       ),
@@ -154,7 +206,21 @@ function openSettings() {
   runs.value = s.runs ?? 10000;
   const fileInput = el("input", { attrs: { type: "file", accept: "application/json" }, style: { display: "none" }, on: { change: doImport } });
 
+  const youId = store.getState().currentUserId;
+  const youP = youId ? players.find((p) => p.id === youId) : null;
+  const switchUser = el("button", { class: "btn ghost block", style: { justifyContent: "space-between" }, on: { click: () => { h.close(); openIdentityPicker(); } } },
+    el("span", { class: "row", style: { gap: "8px" } }, youP ? avatar(youP, 24) : el("span", { class: "iddot" }), el("span", {}, youP ? youP.name : youId === "" ? "Spectator" : "Not set")),
+    el("span", { class: "muted", style: { fontSize: "12px" } }, "Change"));
+
+  const motionOn = (s.reducedMotion === "reduced");
+  const motionToggle = el("button", { class: "btn ghost block", attrs: { role: "switch", "aria-checked": String(motionOn) }, style: { justifyContent: "space-between" }, on: { click: toggleMotion } },
+    el("span", {}, "Reduce motion"), el("span", { class: "muted", style: { fontSize: "12px" } }, motionOn ? "On" : "Off"));
+
   const content = el("div", { class: "stack" },
+    el("div", { class: "daygroup", style: { marginTop: 0 } }, "You"),
+    switchUser,
+    el("div", { class: "daygroup" }, "Preferences"),
+    motionToggle,
     field("Simulation seed (blank = random)", seed),
     field("Simulations per run", runs),
     el("button", { class: "btn primary block", on: { click: saveSettings } }, "Save settings"),
@@ -166,6 +232,14 @@ function openSettings() {
   );
   const h = openModal("Settings", content);
 
+  function toggleMotion() {
+    const on = store.getState().settings.reducedMotion !== "reduced";
+    const next = { ...store.getState().settings, reducedMotion: on ? "reduced" : "auto" };
+    store.setState({ settings: next }); save({ settings: next });
+    document.documentElement.dataset.motion = on ? "reduced" : "";
+    motionToggle.setAttribute("aria-checked", String(on));
+    motionToggle.lastChild.textContent = on ? "On" : "Off";
+  }
   function saveSettings() {
     const next = { ...store.getState().settings, seed: seed.value === "" ? null : Number(seed.value), runs: Number(runs.value) || 10000 };
     store.setState({ settings: next }); save({ settings: next }); h.close();
@@ -176,14 +250,17 @@ function openSettings() {
   function doImport(e) {
     const file = e.target.files[0]; if (!file) return;
     const r = new FileReader();
-    r.onload = () => { try { const next = importJSON(r.result); store.setState({ results: next.results, draftPicks: next.draftPicks, settings: next.settings }); h.close(); onRoute(router.current()); } catch (err) { alert("Import failed: " + err.message); } };
+    r.onload = () => { try { const next = importJSON(r.result); store.setState({ results: next.results, draftPicks: next.draftPicks, currentUserId: next.currentUserId ?? null, settings: next.settings }); document.documentElement.dataset.motion = next.settings?.reducedMotion === "reduced" ? "reduced" : ""; renderIdentityChip(); h.close(); onRoute(router.current()); } catch (err) { alert("Import failed: " + err.message); } };
     r.readAsText(file);
   }
   function doReset() {
     if (!confirm("Clear all entered results and draft edits on this device?")) return;
     const def = resetLocal();
-    store.setState({ results: def.results, draftPicks: def.draftPicks, settings: def.settings });
+    store.setState({ results: def.results, draftPicks: def.draftPicks, currentUserId: def.currentUserId, settings: def.settings });
+    document.documentElement.dataset.motion = "";
+    renderIdentityChip();
     h.close(); onRoute(router.current());
+    openIdentityPicker(); // reset clears identity → back to the picker
   }
 }
 
@@ -200,7 +277,7 @@ function openShare() {
   c.fillStyle = "#1E160E"; c.font = "700 30px Inter, sans-serif"; c.fillText("World Cup 26 · The Table", 64, 156);
   let y = 250;
   d.standings.forEach((r) => {
-    c.fillStyle = r.isYou ? "#FCE3DC" : "#FFFDF8"; roundRect(c, 64, y, W - 128, 116, 20); c.fill();
+    c.fillStyle = r.id === state.currentUserId ? "#FCE3DC" : "#FFFDF8"; roundRect(c, 64, y, W - 128, 116, 20); c.fill();
     c.fillStyle = "#9A8C76"; c.font = "800 40px Archivo"; c.fillText("#" + r.rank, 92, y + 72);
     c.fillStyle = r.color; c.beginPath(); c.arc(210, y + 58, 28, 0, 7); c.fill();
     c.fillStyle = "#1E160E"; c.font = "800 38px Inter"; c.fillText(r.name, 260, y + 56);
@@ -222,7 +299,11 @@ function inputStyle() { return { padding: "11px", borderRadius: "12px", border: 
 function download(name, text) { const b = new Blob([text], { type: "application/json" }); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); }
 function roundRect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
 
+renderIdentityChip();
 router.start();
+
+// First run on this device: prompt for identity once (skippable via Spectator).
+if (store.getState().currentUserId === null) openIdentityPicker();
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
