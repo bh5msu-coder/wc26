@@ -53,9 +53,28 @@ const store = createStore({
   results: saved.results || {},
   draftPicks,
   currentUserId: saved.currentUserId ?? null, // read before first paint → no wrong-user flash
+  syncPool: saved.syncPool ?? null,
   settings: saved.settings,
   route: { name: "table", params: [] },
 });
+
+// Cloud sync (Tier B) is available only when the deployment provides Supabase env.
+const SYNC_CONFIGURED = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+let sync = null;
+let syncStatus = { state: SYNC_CONFIGURED ? "disconnected" : "unavailable" };
+async function ensureSync() {
+  if (sync) return sync;
+  const mod = await import("./core/sync.js");
+  sync = mod.createSync({
+    getShared: () => sharedSlice(store.getState()),
+    applyShared: (shared, mode) => {
+      const merged = mergeShared(sharedSlice(store.getState()), shared, mode);
+      store.setState(merged); save(merged); onRoute(router.current());
+    },
+    onStatus: (s) => { syncStatus = s; },
+  });
+  return sync;
+}
 
 const TABS = [
   ["table", "Table", ICONS.table],
@@ -156,8 +175,8 @@ function makeCtx(params) {
     store, params, navigate: (p) => router.navigate(p),
     onCleanup: (fn) => cleanups.push(fn),
     subscribe: (fn) => { const un = store.subscribe(() => fn()); cleanups.push(un); return un; },
-    commitResults: (results) => { store.setState({ results }); save({ results }); },
-    commitDraft: (draftPicks) => { store.setState({ draftPicks }); save({ draftPicks, draftSeedVersion: SEED_VERSION }); },
+    commitResults: (results) => { store.setState({ results }); save({ results }); sync?.push(); },
+    commitDraft: (draftPicks) => { store.setState({ draftPicks }); save({ draftPicks, draftSeedVersion: SEED_VERSION }); sync?.push(); },
     persistSettings: (settings) => { store.setState({ settings }); save({ settings }); },
   };
 }
@@ -234,7 +253,9 @@ function openSettings() {
     field("Simulation seed (blank = random)", seed),
     field("Simulations per run", runs),
     el("button", { class: "btn primary block", on: { click: saveSettings } }, "Save settings"),
-    el("div", { class: "daygroup" }, "Share & sync"),
+    el("div", { class: "daygroup" }, "Cloud sync"),
+    syncSection(() => h.close()),
+    el("div", { class: "daygroup" }, "Share (no account)"),
     el("button", { class: "btn ghost block", on: { click: () => { h.close(); openShareState(); } } }, "Share results (link & code)"),
     el("button", { class: "btn ghost block", on: { click: () => { h.close(); openImportCode(); } } }, "Import from code"),
     el("div", { class: "daygroup" }, "Backup (file)"),
@@ -306,6 +327,52 @@ function openShare() {
   });
 }
 
+// ── Tier-B cloud sync UI (Supabase) ──
+function statusLabel(s) {
+  const at = s.at ? " · last synced " + new Date(s.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+  return ({ synced: "Synced", syncing: "Syncing…", offline: "Offline — will retry", disconnected: "Not connected", unavailable: "Not configured" }[s.state] || s.state) + (s.state === "synced" ? at : "");
+}
+function copyText(text) { (navigator.clipboard?.writeText(text) || Promise.reject()).catch(() => {}); }
+
+function syncSection(close) {
+  const wrap = el("div", { class: "stack" });
+  if (!SYNC_CONFIGURED) {
+    wrap.append(el("div", { class: "muted", style: { fontSize: "13px", lineHeight: 1.4 } },
+      "Cloud sync isn’t configured on this deployment. An admin can enable it by adding Supabase env vars (see SYNC.md). Until then, use “Share (no account)” below."));
+    return wrap;
+  }
+  const pool = store.getState().syncPool;
+  if (pool?.poolId) {
+    wrap.append(
+      el("div", { class: "spread" }, el("span", { class: "muted", style: { fontSize: "12px" } }, "Pool"), el("b", { style: { fontFamily: "monospace" } }, pool.poolId)),
+      el("div", { class: "muted", style: { fontSize: "12px" } }, statusLabel(syncStatus)),
+      el("button", { class: "btn ghost block", on: { click: () => copyText(pool.passcode ? `${pool.poolId} · ${pool.passcode}` : pool.poolId) } }, "Copy pool ID" + (pool.passcode ? " & passcode" : "")),
+      el("button", { class: "btn ghost block", style: { color: "var(--coral-deep)" }, on: { click: async () => { try { const s = await ensureSync(); await s.leave(); } catch { /* ignore */ } store.setState({ syncPool: null }); save({ syncPool: null }); close(); } } }, "Leave pool"),
+    );
+    return wrap;
+  }
+  const newPass = el("input", { attrs: { placeholder: "optional passcode" }, style: inputStyle() });
+  const joinId = el("input", { attrs: { placeholder: "pool ID", autocapitalize: "off", autocorrect: "off" }, style: inputStyle() });
+  const joinPass = el("input", { attrs: { placeholder: "passcode (if any)" }, style: inputStyle() });
+  const connect = (poolId, passcode) => { store.setState({ syncPool: { poolId, passcode: passcode || null } }); save({ syncPool: { poolId, passcode: passcode || null } }); };
+  wrap.append(
+    el("div", { class: "muted", style: { fontSize: "13px", lineHeight: 1.4 } }, "Create a shared pool so everyone’s results & draft stay in sync live. Your identity stays private to this device."),
+    field("New-pool passcode (optional)", newPass),
+    el("button", { class: "btn primary block", on: { click: async () => {
+      try { const s = await ensureSync(); const p = newPass.value.trim() || null; const { poolId } = await s.create(p); connect(poolId, p); close(); alert("Pool created!\n\nID: " + poolId + (p ? "\nPasscode: " + p : "") + "\n\nShare this with your group to sync."); }
+      catch (e) { alert("Couldn’t create pool: " + e.message); }
+    } } }, "Create pool"),
+    el("div", { class: "daygroup" }, "Join an existing pool"),
+    field("Pool ID", joinId), field("Passcode", joinPass),
+    el("button", { class: "btn ghost block", on: { click: async () => {
+      const id = joinId.value.trim(); if (!id) return;
+      try { const s = await ensureSync(); await s.join(id, joinPass.value.trim() || null); connect(id, joinPass.value.trim() || null); close(); onRoute(router.current()); }
+      catch (e) { alert("Couldn’t join: " + e.message); }
+    } } }, "Join pool"),
+  );
+  return wrap;
+}
+
 // ── Tier-A share: snapshot link/code (no backend) ──
 async function openShareState() {
   let code;
@@ -366,6 +433,11 @@ router.start();
 
 // First run on this device: prompt for identity once (skippable via Spectator).
 if (store.getState().currentUserId === null) openIdentityPicker();
+
+// Reconnect to a previously-joined cloud pool (if sync is configured).
+if (SYNC_CONFIGURED && saved.syncPool?.poolId) {
+  ensureSync().then((s) => s.join(saved.syncPool.poolId, saved.syncPool.passcode).catch(() => {})).catch(() => {});
+}
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));

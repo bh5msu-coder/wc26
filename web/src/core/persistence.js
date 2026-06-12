@@ -8,6 +8,7 @@ const DEFAULTS = () => ({
   draftPicks: null, // null → fall back to the seeded board
   draftSeedVersion: null, // version of the seed the saved picks were tagged against
   currentUserId: null, // null → never chosen (show picker); "" → spectator; else a manager id. LOCAL-only.
+  syncPool: null, // { poolId, passcode } when joined to a cloud pool. LOCAL-only (never shared).
   settings: { seed: null, runs: 10000, reducedMotion: "auto" },
   lastSimStamp: null,
 });
