@@ -1,8 +1,12 @@
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg);
-  box-shadow: var(--shadow); padding: 16px;
+  box-shadow: var(--e-1); padding: 16px;
+  transition: box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 .card.tight { padding: 4px 14px; }
+.card[role="button"] { cursor: pointer; }
+.card[role="button"]:hover { box-shadow: var(--e-2); transform: translateY(-2px); }
+.card[role="button"]:active { transform: translateY(0) scale(.992); }
 .seg {
   display: flex; gap: 4px; background: var(--cream-2); border: 1px solid var(--line);
   border-radius: 999px; padding: 4px;
@@ -23,7 +27,7 @@
 .flagchip .flag { font-size: 20px; }
 .flagchip .code { font-weight: 800; font-size: 12px; letter-spacing: .02em; }
 
-.num { font-family: var(--display); font-weight: 800; letter-spacing: -.02em; }
+.num { font-family: var(--display); font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1; }
 .numeral-xl { font-size: 30px; }
 .numeral-lg { font-size: 22px; }
 
@@ -121,8 +125,11 @@
 .scoreinput .stepper { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .scoreinput .stepper .flag { font-size: 30px; }
 .scoreinput input { width: 100%; text-align: center; font-family: var(--display); font-weight: 800; font-size: 30px; border: 1px solid var(--line-strong); border-radius: 12px; padding: 8px 0; background: var(--card); }
-.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 12px; padding: 13px 16px; font-weight: 800; font-size: 15px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 12px; padding: 13px 16px; font-weight: 800; font-size: 15px; min-height: 44px; transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), filter var(--dur) var(--ease); }
+.btn:active { transform: translateY(1px) scale(.99); }
 .btn.primary { background: var(--coral); color: #fff; box-shadow: 0 6px 16px rgba(240,73,46,.3); }
+.btn.primary:hover { filter: brightness(1.05); box-shadow: 0 8px 22px rgba(240,73,46,.38); }
+.btn.ghost:hover { border-color: var(--line-strong); }
 .btn.ghost { background: var(--card); border: 1px solid var(--line); }
 .btn.block { width: 100%; }
 .preview { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin: 6px 0; }

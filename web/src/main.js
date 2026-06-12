@@ -37,6 +37,9 @@ const EAGER = { table: renderTable };
 
 const saved = load();
 
+// Apply the in-app "reduce motion" preference before first paint (independent of the OS setting).
+document.documentElement.dataset.motion = saved.settings?.reducedMotion === "reduced" ? "reduced" : "";
+
 // The seeded board is authoritative. If a returning visitor has live draft picks
 // saved from an older seed version, drop them so everyone converges on the current
 // board. Bump `version` in data/draft.seed.json to force a one-time reset for all.
