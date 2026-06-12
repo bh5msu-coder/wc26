@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, flagChip, pill } from "../components/ui.js";
+import { avatar, flagChip, pill, natTag } from "../components/ui.js";
 import { computeDerived, ownerByCode } from "../logic/selectors.js";
 
 export function renderSquad(ctx) {
@@ -23,7 +23,7 @@ export function renderSquad(ctx) {
           el("div", { class: "row" }, avatar(player, 32), el("div", {}, el("div", { style: { fontWeight: 800 } }, player.name + (player.isYou ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "11px" } }, "rank #" + row.rank))),
           el("div", { class: "num numeral-lg" }, row.total),
         ),
-        el("div", { class: "wrap" }, ...nations.map((n) => el("span", { class: "pill muted", style: { fontSize: "12px" } }, `${n.flag} ${n.code} · ${n.points}`))),
+        el("div", { class: "wrap" }, ...nations.map((n) => natTag(n, { note: String(n.points) }))),
       ));
     }
   }

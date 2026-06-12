@@ -25,10 +25,14 @@ export function renderTable(ctx) {
   let sawChampion = false;
 
   function buildRow(player) {
-    const row = el("div", { class: "standrow", attrs: { role: "listitem" }, dataset: { mgr: player.id } },
+    const row = el("div", { class: "standrow", attrs: { role: "listitem" }, dataset: { mgr: player.id }, style: { "--mgr": player.color } },
       el("div", { class: "rank num" }, "—"),
       avatar(player, 34),
-      el("div", { class: "who" }, el("div", { class: "name" }, player.name + (player.isYou ? " · you" : "")), el("div", { class: "meta" }, "")),
+      el("div", { class: "who" },
+        el("div", { class: "name" }, player.name + (player.isYou ? " · you" : "")),
+        el("div", { class: "meta" }, ""),
+        el("div", { class: "natdots" }),
+      ),
       el("div", { class: "pts" }, el("div", { class: "total num" }, "0"), el("div", { class: "added" }, "")),
     );
     return row;
@@ -37,6 +41,7 @@ export function renderTable(ctx) {
   function update() {
     const state = ctx.store.getState();
     const d = computeDerived(state);
+    const colorsByCode = new Map(state.data.nations.map((n) => [n.code, (n.colors && n.colors[0]) || "var(--line-strong)"]));
     renderHero(state, d);
 
     // FLIP capture
@@ -55,6 +60,11 @@ export function renderTable(ctx) {
       row.querySelector(".rank").textContent = String(r.rank);
       const aliveTeams = r.nations.length;
       row.querySelector(".who .meta").textContent = `${aliveTeams} nations · ${r.alive} alive`;
+      // country-colour dots (ordered by points, mirrors squad order)
+      const dots = row.querySelector(".natdots");
+      clear(dots);
+      [...r.nations].sort((a, b) => b.points - a.points).forEach((n) =>
+        dots.appendChild(el("i", { style: { background: colorsByCode.get(n.code) }, attrs: { title: n.code } })));
       const totalEl = row.querySelector(".total");
       countUp(totalEl, r.total);
       // rank arrow
@@ -96,13 +106,14 @@ export function renderTable(ctx) {
         const st = fixtureStatus(f, state.results);
         const res = state.results[f.id];
         const h = byCode.get(f.home), a = byCode.get(f.away);
+        const barFor = (n) => el("div", { class: "bar", style: { background: (n?.colors && n.colors[0]) || "rgba(255,255,255,.4)" } });
         hero.appendChild(el("div", { class: "matchcard", attrs: { role: "button", tabindex: "0" }, on: { click: () => openResultEntry(ctx, f.id), keydown: (e) => { if (e.key === "Enter") openResultEntry(ctx, f.id); } } },
-          el("div", { class: "side" }, el("span", { class: "flag" }, h?.flag || "🏳️"), el("span", { class: "code" }, f.home)),
+          el("div", { class: "side" }, el("span", { class: "flag" }, h?.flag || "🏳️"), el("span", { class: "code" }, f.home), barFor(h)),
           el("div", { class: "vs" },
             el("div", { class: "score" }, res ? `${res.hs}–${res.as}` : "vs"),
             el("div", { class: "clock" }, st === "final" ? "Full time" : st === "live" ? "LIVE" : new Date(f.kickoff).toUTCString().slice(17, 22)),
           ),
-          el("div", { class: "side" }, el("span", { class: "flag" }, a?.flag || "🏳️"), el("span", { class: "code" }, f.away)),
+          el("div", { class: "side" }, el("span", { class: "flag" }, a?.flag || "🏳️"), el("span", { class: "code" }, f.away), barFor(a)),
         ));
       });
     }

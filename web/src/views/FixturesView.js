@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { pill } from "../components/ui.js";
+import { pill, natColors } from "../components/ui.js";
 import { kickoffLabel, dayKey } from "../core/format.js";
 import { ownerByCode, effectivePicks, fixtureStatus } from "../logic/selectors.js";
 import { openResultEntry } from "./ResultEntryView.js";
@@ -47,10 +47,11 @@ export function renderFixtures(ctx) {
       const stakeDots = [f.home, f.away].map((c) => owner[c] ? el("span", { class: "stakedot", style: { background: colorOf(owner[c]) }, attrs: { title: c + " is drafted" } }) : null).filter(Boolean);
       const clickable = h && a;
       const venue = venueById.get(f.venueId);
+      const natdot = (n) => el("span", { class: "natdot", style: { background: natColors(n).a } });
       list.appendChild(el("div", { class: "fxrow", attrs: clickable ? { role: "button", tabindex: "0" } : {}, on: clickable ? { click: () => openResultEntry(ctx, f.id), keydown: (e) => e.key === "Enter" && openResultEntry(ctx, f.id) } : {} },
-        el("div", { class: "team" }, el("span", { class: "flag", style: { fontSize: "18px" } }, h?.flag || "🏳️"), el("b", {}, f.home)),
+        el("div", { class: "team" }, natdot(h), el("span", { class: "flag", style: { fontSize: "18px" } }, h?.flag || "🏳️"), el("b", {}, f.home)),
         el("div", { class: "sc" }, res ? `${res.hs}–${res.as}` : (f.group ? "Grp " + f.group : f.stage)),
-        el("div", { class: "team away" }, el("b", {}, f.away), el("span", { class: "flag", style: { fontSize: "18px" } }, a?.flag || "🏳️")),
+        el("div", { class: "team away" }, el("b", {}, f.away), el("span", { class: "flag", style: { fontSize: "18px" } }, a?.flag || "🏳️"), natdot(a)),
         el("div", { class: "stake" }, st === "final" ? pill("FT", "done") : st === "live" ? pill("LIVE", "live") : el("span", { class: "muted", style: { fontSize: "10px" } }, venue?.city?.split(" ")[0] || ""), ...stakeDots),
       ));
     }

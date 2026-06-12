@@ -30,10 +30,54 @@ export function avatar(player, size = 30) {
   return el("div", { class: "avatar", style: { background: player.color, width: size + "px", height: size + "px", fontSize: Math.round(size * 0.4) + "px" } }, initials);
 }
 
-export function flagChip(nation, { showName = false, size = 20 } = {}) {
+/* ── Country colours ───────────────────────────────────────────────
+   Each nation carries `colors: [primary, secondary]` (national-team
+   colours). These helpers turn that into legible UI accents. */
+const FALLBACK = ["#9A8C76", "#DcC7A8"];
+
+export function natColors(nation) {
+  const c = Array.isArray(nation?.colors) && nation.colors.length ? nation.colors : FALLBACK;
+  return { a: c[0], b: c[1] || c[0] };
+}
+
+/** Relative luminance (0–1) of a #rrggbb colour. */
+function luminance(hex) {
+  const h = String(hex).replace("#", "");
+  if (h.length < 6) return 0.5;
+  const ch = (i) => {
+    const v = parseInt(h.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(0) + 0.7152 * ch(2) + 0.0722 * ch(4);
+}
+
+/** Pick ink or white text for legibility on a solid colour. */
+export function readableOn(hex) {
+  return luminance(hex) > 0.5 ? "#1E160E" : "#FFFFFF";
+}
+
+/** A flag-led chip; pass `dot` for a country-colour cue, `color` to tint the code. */
+export function flagChip(nation, { showName = false, size = 20, dot = false, color = false } = {}) {
+  const { a } = natColors(nation);
   return el("span", { class: "flagchip" },
+    dot ? el("span", { class: "natdot", style: { background: a } }) : "",
     el("span", { class: "flag", style: { fontSize: size + "px" } }, nation?.flag || "🏳️"),
-    el("span", { class: "code" }, showName ? (nation?.name || nation?.code) : (nation?.code || "—")),
+    el("span", { class: "code", style: color ? { color: a } : {} }, showName ? (nation?.name || nation?.code) : (nation?.code || "—")),
+  );
+}
+
+/** A fully country-coloured tag: flag + code (+ optional trailing note). */
+export function natTag(nation, { note = "", strong = false } = {}) {
+  const { a, b } = natColors(nation);
+  return el("span", {
+    class: "nattag" + (strong ? " strong" : ""),
+    style: strong
+      ? { background: `linear-gradient(135deg, ${a}, ${b})`, color: readableOn(a), borderColor: a }
+      : { background: a + "14", borderColor: a + "59", "--nat": a },
+  },
+    el("span", { class: "flag", style: { fontSize: "15px" } }, nation?.flag || "🏳️"),
+    el("span", { class: "ncode" }, nation?.code || "—"),
+    note !== "" ? el("span", { class: "nnote" }, note) : "",
   );
 }
 
