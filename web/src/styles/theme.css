@@ -1,15 +1,15 @@
 :root {
-  /* palette */
+  /* palette — light (default) */
   --cream: #FBF2E5;
   --cream-2: #F4E8D6;
   --card: #FFFDF8;
   --ink: #1E160E;
-  --ink-soft: #5C5040;
-  --faint: #9A8C76;
+  --ink-soft: #574B3B;
+  --faint: #6F6450;       /* darkened to clear WCAG AA (4.5:1) on cream for small text */
   --line: #EADBC4;
   --line-strong: #DcC7A8;
   --coral: #F0492E;
-  --coral-deep: #C8351C;
+  --coral-deep: #C0331B;  /* AA-safe coral for small text / kickers */
   --coral-soft: #FCE3DC;
   --gold: #E0A23B;
   --green: #2EA56B;
@@ -22,9 +22,18 @@
   --ribbon: linear-gradient(90deg, #2E7CF6, #2EA56B, #E0A23B, #F0492E, #7C3AED);
   --hero-grad: linear-gradient(135deg, #15233f 0%, #1f3358 45%, #3a2a4d 100%);
 
+  /* ── design tokens (scales over the palette) ── */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px;
+  --e-1: 0 1px 2px rgba(60,40,20,.06), 0 4px 12px rgba(120,80,30,.06);
+  --e-2: 0 2px 4px rgba(60,40,20,.07), 0 12px 30px rgba(120,80,30,.10);
+  --dur: 170ms;
+  --ease: cubic-bezier(.2,.7,.3,1);
+
   /* type */
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --display: "Archivo", "Inter", system-ui, sans-serif;
+  /* System-font stacks — zero web-font weight, no FOIT/FOUT. --display favours the
+     platform's display/variable face for headings; both fall back gracefully. */
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --display: "SF Pro Display", system-ui, -apple-system, "Segoe UI Variable Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* shape */
   --r-lg: 22px;
@@ -35,4 +44,35 @@
 
   --tab-h: 64px;
   --maxw: 720px;
+  color-scheme: light;
+}
+
+/* ── Dark mode — same tokens, warm dark palette; keeps the coral identity.
+   Opt out by setting data-theme="light" on <html>. ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --cream: #14110D;
+    --cream-2: #201B15;
+    --card: #1B1610;
+    --ink: #F6EEE0;
+    --ink-soft: #CDC0AC;
+    --faint: #A6987F;       /* AA on the dark bg */
+    --line: #302820;
+    --line-strong: #43392C;
+    --coral: #FF6A50;
+    --coral-deep: #FF8568;
+    --coral-soft: #3A201A;
+    --line-strong: #43392C;
+    --e-1: 0 1px 2px rgba(0,0,0,.4), 0 6px 16px rgba(0,0,0,.3);
+    --e-2: 0 2px 6px rgba(0,0,0,.5), 0 16px 36px rgba(0,0,0,.45);
+    --shadow: var(--e-1);
+    --shadow-pop: var(--e-2);
+    color-scheme: dark;
+  }
+}
+
+/* In-app "reduce motion" preference (Settings), independent of the OS setting. */
+:root[data-motion="reduced"] *, :root[data-motion="reduced"] *::before, :root[data-motion="reduced"] *::after {
+  animation-duration: .001ms !important; animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important; scroll-behavior: auto !important;
 }

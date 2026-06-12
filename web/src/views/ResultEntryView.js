@@ -1,6 +1,6 @@
 import { el } from "../core/dom.js";
 import { openModal } from "../components/Modal.js";
-import { flagChip, avatar, pill } from "../components/ui.js";
+import { flagChip, avatar, pill, flagImg } from "../components/ui.js";
 import { validateScore } from "../logic/derive.js";
 import { computeDerived, ownerByCode } from "../logic/selectors.js";
 
@@ -33,9 +33,9 @@ export function openResultEntry(ctx, fixtureId) {
   const content = el("div", {},
     el("div", { class: "muted center", style: { fontSize: "12px", fontWeight: "700", letterSpacing: ".06em", textTransform: "uppercase" } }, `${fixture.stage}${fixture.group ? " · Group " + fixture.group : ""}`),
     el("div", { class: "scoreinput" },
-      el("div", { class: "stepper" }, el("span", { class: "flag" }, home.flag), el("span", { class: "code", style: { fontWeight: 800 } }, home.code), hsInput),
+      el("div", { class: "stepper" }, flagImg(home, { size: 30 }), el("span", { class: "code", style: { fontWeight: 800 } }, home.code), hsInput),
       el("div", { class: "center num", style: { color: "var(--faint)" } }, "–"),
-      el("div", { class: "stepper" }, el("span", { class: "flag" }, away.flag), el("span", { class: "code", style: { fontWeight: 800 } }, away.code), asInput),
+      el("div", { class: "stepper" }, flagImg(away, { size: 30 }), el("span", { class: "code", style: { fontWeight: 800 } }, away.code), asInput),
     ),
     shootRow,
     errBox,

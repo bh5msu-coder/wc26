@@ -17,10 +17,11 @@ export function renderSquad(ctx) {
     clear(body);
     for (const row of d.standings) {
       const player = state.data.players.find((p) => p.id === row.id);
+      const you = row.id === state.currentUserId;
       const nations = (byMgr[row.id] || []).sort((a, b) => b.points - a.points);
-      body.appendChild(el("div", { class: "card", attrs: { role: "button", tabindex: "0" }, on: { click: () => ctx.navigate("player/" + row.id), keydown: (e) => e.key === "Enter" && ctx.navigate("player/" + row.id) } },
+      body.appendChild(el("div", { class: "card" + (you ? " you" : ""), attrs: { role: "button", tabindex: "0" }, on: { click: () => ctx.navigate("player/" + row.id), keydown: (e) => e.key === "Enter" && ctx.navigate("player/" + row.id) } },
         el("div", { class: "spread", style: { marginBottom: "10px" } },
-          el("div", { class: "row" }, avatar(player, 32), el("div", {}, el("div", { style: { fontWeight: 800 } }, player.name + (player.isYou ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "11px" } }, "rank #" + row.rank))),
+          el("div", { class: "row" }, avatar(player, 32), el("div", {}, el("div", { style: { fontWeight: 800 } }, player.name + (you ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "11px" } }, "rank #" + row.rank))),
           el("div", { class: "num numeral-lg" }, row.total),
         ),
         el("div", { class: "wrap" }, ...nations.map((n) => natTag(n, { note: String(n.points) }))),

@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, pill, ICONS, natColors, readableOn } from "../components/ui.js";
+import { avatar, pill, ICONS, natColors, readableOn, flagImg } from "../components/ui.js";
 import { computeDerived, ownerByCode } from "../logic/selectors.js";
 
 export function renderNationDetail(ctx) {
@@ -20,7 +20,7 @@ export function renderNationDetail(ctx) {
     const { a, b } = natColors(n);
     body.append(
       el("div", { class: "natbanner", style: { background: `linear-gradient(135deg, ${a} 0%, ${b} 100%)`, color: readableOn(a) } },
-        el("div", { class: "flag" }, n.flag),
+        flagImg(n, { size: 54, alt: n.name + " flag" }),
         el("div", { class: "nname" }, n.name),
         el("div", { class: "nmeta" },
           pill("Group " + n.group, "muted"), pill("FIFA #" + (n.fifaRank ?? "—"), "muted"), n.titles ? pill("★".repeat(n.titles), "soft") : "", n.champion ? pill("🏆 Champion", "coral") : (n.alive ? pill("Still alive", "done") : pill("Eliminated", "muted")),

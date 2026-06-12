@@ -37,7 +37,7 @@ body::before {
 .iconbtn:hover { transform: translateY(-1px); box-shadow: var(--shadow-pop); }
 
 .viewhead { margin: 4px 0 14px; }
-.viewhead .kicker { font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--coral); }
+.viewhead .kicker { font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--coral-deep); }
 .viewhead h1 { font-family: var(--display); font-size: 30px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; }
 .viewhead .lede { color: var(--ink-soft); font-size: 13.5px; margin-top: 4px; }
 
@@ -46,17 +46,27 @@ body::before {
   position: fixed; inset-inline: 0; bottom: 0; z-index: 40;
   height: calc(var(--tab-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  display: flex; background: rgba(255,253,248,.92); backdrop-filter: blur(12px);
+  display: flex; justify-content: center; background: color-mix(in srgb, var(--card) 88%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--line);
 }
 .tabbar .tab {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  position: relative; flex: 1; max-width: 132px; min-height: 44px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   font-size: 10.5px; font-weight: 700; color: var(--faint);
+  transition: color var(--dur) var(--ease);
 }
-.tabbar .tab svg { width: 22px; height: 22px; }
+/* animated active indicator: a pill that grows in under the active tab */
+.tabbar .tab::before {
+  content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 3px; border-radius: 2px; background: var(--coral);
+  transition: width var(--dur) var(--ease);
+}
+.tabbar .tab svg { width: 22px; height: 22px; transition: transform var(--dur) var(--ease); }
 .tabbar .tab[aria-current="page"] { color: var(--coral); }
-.tabbar .tab[aria-current="page"] .dot { opacity: 1; }
-.tabbar .tab .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--coral); opacity: 0; }
+.tabbar .tab[aria-current="page"]::before { width: 24px; }
+.tabbar .tab[aria-current="page"] svg { transform: translateY(-1px) scale(1.06); }
+.tabbar .tab .dot { display: none; }
 
 .muted { color: var(--faint); }
 .center { text-align: center; }

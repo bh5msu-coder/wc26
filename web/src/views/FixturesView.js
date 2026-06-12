@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { pill, natColors } from "../components/ui.js";
+import { pill, natColors, flagImg } from "../components/ui.js";
 import { kickoffLabel, dayKey } from "../core/format.js";
 import { ownerByCode, effectivePicks, fixtureStatus } from "../logic/selectors.js";
 import { openResultEntry } from "./ResultEntryView.js";
@@ -9,7 +9,8 @@ const FILTERS = [["all", "All"], ["group", "Groups"], ["ko", "Knockout"], ["mine
 export function renderFixtures(ctx) {
   const root = el("div", {});
   const list = el("div", {});
-  let filter = "all";
+  // default to the current user's stake when they've picked an identity
+  let filter = ctx.store.getState().currentUserId ? "mine" : "all";
   const seg = el("div", { class: "seg", attrs: { role: "tablist" } },
     ...FILTERS.map(([k, label]) => el("button", { attrs: { role: "tab", "aria-pressed": String(k === filter) }, on: { click: () => { filter = k; build(); } } }, label)),
   );
@@ -26,7 +27,7 @@ export function renderFixtures(ctx) {
     const venueById = new Map(venues.map((v) => [v.id, v]));
     const owner = ownerByCode(effectivePicks(state));
     const colorOf = (mid) => players.find((p) => p.id === mid)?.color;
-    const me = players.find((p) => p.isYou)?.id;
+    const me = state.currentUserId;
 
     [...seg.children].forEach((b, i) => b.setAttribute("aria-pressed", String(FILTERS[i][0] === filter)));
 
@@ -49,9 +50,9 @@ export function renderFixtures(ctx) {
       const venue = venueById.get(f.venueId);
       const natdot = (n) => el("span", { class: "natdot", style: { background: natColors(n).a } });
       list.appendChild(el("div", { class: "fxrow", attrs: clickable ? { role: "button", tabindex: "0" } : {}, on: clickable ? { click: () => openResultEntry(ctx, f.id), keydown: (e) => e.key === "Enter" && openResultEntry(ctx, f.id) } : {} },
-        el("div", { class: "team" }, natdot(h), el("span", { class: "flag", style: { fontSize: "18px" } }, h?.flag || "🏳️"), el("b", {}, f.home)),
+        el("div", { class: "team" }, natdot(h), flagImg(h, { size: 18 }), el("b", {}, f.home)),
         el("div", { class: "sc" }, res ? `${res.hs}–${res.as}` : (f.group ? "Grp " + f.group : f.stage)),
-        el("div", { class: "team away" }, el("b", {}, f.away), el("span", { class: "flag", style: { fontSize: "18px" } }, a?.flag || "🏳️"), natdot(a)),
+        el("div", { class: "team away" }, el("b", {}, f.away), flagImg(a, { size: 18 }), natdot(a)),
         el("div", { class: "stake" }, st === "final" ? pill("FT", "done") : st === "live" ? pill("LIVE", "live") : el("span", { class: "muted", style: { fontSize: "10px" } }, venue?.city?.split(" ")[0] || ""), ...stakeDots),
       ));
     }

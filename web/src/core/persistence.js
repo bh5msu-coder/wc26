@@ -1,18 +1,22 @@
 // localStorage-backed user state with schema versioning + JSON export/import.
 const KEY = "wb26wc:state";
-const SCHEMA = 1;
+const SCHEMA = 2;
 
 const DEFAULTS = () => ({
   schemaVersion: SCHEMA,
   results: {},
   draftPicks: null, // null → fall back to the seeded board
   draftSeedVersion: null, // version of the seed the saved picks were tagged against
+  currentUserId: null, // null → never chosen (show picker); "" → spectator; else a manager id. LOCAL-only.
+  syncPool: null, // { poolId, passcode } when joined to a cloud pool. LOCAL-only (never shared).
   settings: { seed: null, runs: 10000, reducedMotion: "auto" },
   lastSimStamp: null,
 });
 
 const migrations = {
-  // 1: (s) => ({ ...s, schemaVersion: 2, ... })
+  // v1 → v2: introduce per-device identity. Existing installs start unset so the
+  // "Who are you?" picker appears once; nothing else changes.
+  1: (s) => ({ ...s, schemaVersion: 2, currentUserId: s.currentUserId ?? null }),
 };
 
 export function load() {

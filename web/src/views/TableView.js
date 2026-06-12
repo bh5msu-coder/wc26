@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, flagChip, pill, ICONS } from "../components/ui.js";
+import { avatar, flagChip, pill, ICONS, flagImg } from "../components/ui.js";
 import { confettiBurst } from "../components/charts.js";
 import { capture, play } from "../core/flip.js";
 import { countUp, kickoffLabel } from "../core/format.js";
@@ -29,7 +29,7 @@ export function renderTable(ctx) {
       el("div", { class: "rank num" }, "—"),
       avatar(player, 34),
       el("div", { class: "who" },
-        el("div", { class: "name" }, player.name + (player.isYou ? " · you" : "")),
+        el("div", { class: "name" }, player.name + (ctx.store.getState().currentUserId === player.id ? " · you" : "")),
         el("div", { class: "meta" }, ""),
         el("div", { class: "natdots" }),
       ),
@@ -55,7 +55,7 @@ export function renderTable(ctx) {
     let championJustCrowned = false;
     d.standings.forEach((r) => {
       const row = rowByMgr.get(r.id);
-      row.classList.toggle("you", r.isYou);
+      row.classList.toggle("you", r.id === state.currentUserId);
       row.classList.toggle("leader", r.rank === 1);
       row.querySelector(".rank").textContent = String(r.rank);
       const aliveTeams = r.nations.length;
@@ -108,12 +108,12 @@ export function renderTable(ctx) {
         const h = byCode.get(f.home), a = byCode.get(f.away);
         const barFor = (n) => el("div", { class: "bar", style: { background: (n?.colors && n.colors[0]) || "rgba(255,255,255,.4)" } });
         hero.appendChild(el("div", { class: "matchcard", attrs: { role: "button", tabindex: "0" }, on: { click: () => openResultEntry(ctx, f.id), keydown: (e) => { if (e.key === "Enter") openResultEntry(ctx, f.id); } } },
-          el("div", { class: "side" }, el("span", { class: "flag" }, h?.flag || "🏳️"), el("span", { class: "code" }, f.home), barFor(h)),
+          el("div", { class: "side" }, flagImg(h, { size: 26 }), el("span", { class: "code" }, f.home), barFor(h)),
           el("div", { class: "vs" },
             el("div", { class: "score" }, res ? `${res.hs}–${res.as}` : "vs"),
             el("div", { class: "clock" }, st === "final" ? "Full time" : st === "live" ? "LIVE" : new Date(f.kickoff).toUTCString().slice(17, 22)),
           ),
-          el("div", { class: "side" }, el("span", { class: "flag" }, a?.flag || "🏳️"), el("span", { class: "code" }, f.away), barFor(a)),
+          el("div", { class: "side" }, flagImg(a, { size: 26 }), el("span", { class: "code" }, f.away), barFor(a)),
         ));
       });
     }

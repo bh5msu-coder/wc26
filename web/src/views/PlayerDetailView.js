@@ -1,5 +1,5 @@
 import { el, clear } from "../core/dom.js";
-import { avatar, pill, bar, ICONS } from "../components/ui.js";
+import { avatar, pill, bar, ICONS, flagImg } from "../components/ui.js";
 import { computeDerived } from "../logic/selectors.js";
 
 export function renderPlayerDetail(ctx) {
@@ -24,14 +24,14 @@ export function renderPlayerDetail(ctx) {
     body.append(
       el("div", { class: "card", style: { marginBottom: "12px" } },
         el("div", { class: "spread" },
-          el("div", { class: "row" }, avatar(player, 44), el("div", {}, el("div", { style: { fontWeight: 800, fontSize: "18px" } }, player.name + (player.isYou ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "12px" } }, "rank #" + row.rank + " · " + row.alive + " alive"))),
+          el("div", { class: "row" }, avatar(player, 44), el("div", {}, el("div", { style: { fontWeight: 800, fontSize: "18px" } }, player.name + (player.id === state.currentUserId ? " · you" : "")), el("div", { class: "muted", style: { fontSize: "12px" } }, "rank #" + row.rank + " · " + row.alive + " alive"))),
           el("div", { class: "center" }, el("div", { class: "num numeral-xl" }, row.total), el("div", { class: "muted", style: { fontSize: "11px" } }, "points")),
         ),
       ),
       el("div", { class: "daygroup" }, "Points by nation"),
       el("div", { class: "card tight" }, ...nations.map((n) => el("div", { style: { padding: "9px 0", borderBottom: "1px solid var(--line)" } },
         el("div", { class: "spread", style: { marginBottom: "5px" } },
-          el("div", { class: "row" }, el("span", { class: "flag", style: { fontSize: "18px" } }, n.flag), el("b", {}, n.name), n.champion ? pill("🏆", "soft") : (n.alive ? pill("alive", "done") : pill("out", "muted"))),
+          el("div", { class: "row" }, flagImg(n, { size: 18 }), el("b", {}, n.name), n.champion ? pill("🏆", "soft") : (n.alive ? pill("alive", "done") : pill("out", "muted"))),
           el("div", { class: "num", style: { fontSize: "16px" } }, n.points),
         ),
         bar(n.points / maxPts, player.color),
